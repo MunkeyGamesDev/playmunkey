@@ -21,6 +21,7 @@
       background-size: 100% 20px;
       overflow-x: hidden;
       position: relative;
+      margin: 0;
       cursor: default;
     }
 
@@ -79,14 +80,18 @@
     }
 
     @keyframes fly {
-      0% {
-        opacity: 1;
-        transform: translate(0,0) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(var(--dx), var(--dy)) scale(0.5);
-      }
+      0% { opacity: 1; transform: translate(0,0) scale(1); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
+    }
+
+    /* Footer styling */
+    footer {
+      text-align: center;
+      padding: 5px 0;   /* smaller vertical padding */
+      font-size: 12px;  /* smaller text */
+      background-color: #0d0f14; 
+      position: relative; /* ensures particles can appear over it */
+      z-index: 1;
     }
   </style>
 </head>
@@ -115,9 +120,8 @@
     monkey.classList.add('wobble');
   });
 
-  // Binary explosion on background click
-  document.body.addEventListener('click', (e) => {
-    // Don't trigger when clicking the monkey
+  // Binary explosion on document click
+  document.addEventListener('click', (e) => {
     if (e.target.classList.contains('emoji-wobble')) return;
 
     const particlesCount = 20;
