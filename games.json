@@ -1,0 +1,9 @@
+{
+  "games": [
+    {
+      "title": "Click Chaos",
+      "description": "Click the button and spawn chaos.",
+      "file": "click-chaos.html"
+    }
+  ]
+}
