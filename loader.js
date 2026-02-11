@@ -8,6 +8,7 @@ fetch('games.json')
       card.className = 'card';
 
       card.innerHTML = `
+        <img src="games/${game.image}" class="game-img">
         <h3>${game.title}</h3>
         <p>${game.description}</p>
         <a href="games/${game.file}" target="_blank">Play</a>
