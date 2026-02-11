@@ -20,6 +20,8 @@
       );
       background-size: 100% 20px;
       overflow-x: hidden;
+      position: relative;
+      cursor: default;
     }
 
     @keyframes moveCode {
@@ -65,6 +67,27 @@
     h1 span.emoji-wobble.wobble {
       animation: wobble 0.6s ease;
     }
+
+    /* Binary particle style */
+    .binary-particle {
+      position: absolute;
+      font-family: monospace;
+      color: #0f0;
+      pointer-events: none;
+      user-select: none;
+      animation: fly 0.8s forwards;
+    }
+
+    @keyframes fly {
+      0% {
+        opacity: 1;
+        transform: translate(0,0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) scale(0.5);
+      }
+    }
   </style>
 </head>
 <body>
@@ -84,12 +107,42 @@
 </footer>
 
 <script>
-  // Make the monkey emoji wobble when clicked
+  // 🐵 Wobble on click
   const monkey = document.querySelector('.emoji-wobble');
   monkey.addEventListener('click', () => {
-    monkey.classList.remove('wobble'); // reset
-    void monkey.offsetWidth; // trigger reflow to restart animation
+    monkey.classList.remove('wobble'); 
+    void monkey.offsetWidth; 
     monkey.classList.add('wobble');
+  });
+
+  // Binary explosion on background click
+  document.body.addEventListener('click', (e) => {
+    // Don't trigger when clicking the monkey
+    if (e.target.classList.contains('emoji-wobble')) return;
+
+    const particlesCount = 20;
+    for (let i = 0; i < particlesCount; i++) {
+      const particle = document.createElement('span');
+      particle.classList.add('binary-particle');
+      particle.textContent = Math.random() > 0.5 ? '0' : '1';
+
+      // Position at click
+      particle.style.left = e.pageX + 'px';
+      particle.style.top = e.pageY + 'px';
+
+      // Random direction
+      const dx = (Math.random() - 0.5) * 200 + 'px';
+      const dy = (Math.random() - 0.5) * 200 + 'px';
+      particle.style.setProperty('--dx', dx);
+      particle.style.setProperty('--dy', dy);
+
+      document.body.appendChild(particle);
+
+      // Remove after animation
+      particle.addEventListener('animationend', () => {
+        particle.remove();
+      });
+    }
   });
 </script>
 
