@@ -1,9 +1,9 @@
 {
   "games": [
     {
-      "title": "Click Chaos",
-      "description": "Click the button and spawn chaos.",
-      "file": "click-chaos.html"
+      "title": "Particle Game",
+      "description": "Simulation Sandbox!",
+      "file": "particlegame.html"
     }
   ]
 }
