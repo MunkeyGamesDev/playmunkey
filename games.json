@@ -2,9 +2,15 @@
   "games": [
     {
       "title": "Particle Game",
-      "description": "Particles go brrrr.",
+      "description": "Particle Simulation Sandbox!",
       "file": "particlegame.html",
       "image": "particlegame.png"
+    },
+    {
+      "title": "HasTheWorldEnded",
+      "description": "Click to check if the world has ended…",
+      "file": "HasTheWorldEnded.html",
+      "image": "hasTheWorldEnded.png"
     }
   ]
 }
