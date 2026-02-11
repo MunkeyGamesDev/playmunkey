@@ -22,26 +22,56 @@ header {
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
   padding: 40px;
 }
 
 .card {
-  background: #1c1c1c;
-  padding: 20px;
-  border-radius: 10px;
-  transition: 0.2s ease;
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.25s ease;
+  display: flex;
+  align-items: flex-end;
+  text-align: left;
 }
 
 .card:hover {
-  background: #2a2a2a;
+  transform: scale(1.03);
 }
 
-.card a {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
+.card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.65);
+  transition: filter 0.3s ease;
+}
+
+.card:hover .card-bg {
+  filter: brightness(0.8);
+}
+
+.card-content {
+  position: relative;
+  padding: 20px;
+  z-index: 2;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.card p {
+  margin: 5px 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
 }
 
 footer {
