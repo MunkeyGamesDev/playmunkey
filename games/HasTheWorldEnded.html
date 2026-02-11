@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HasTheWorldEnded?</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #89f7fe, #66a6ff);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background-color: #ff6b6b;
+            color: white;
+            transition: transform 0.1s;
+        }
+        button:hover {
+            transform: scale(1.1);
+        }
+        p {
+            margin-top: 30px;
+            font-size: 1.8em;
+            color: #fff;
+            text-shadow: 1px 1px 2px #000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Has the World Ended?</h1>
+    <button id="checkButton">Check Now</button>
+    <p id="result">🤔 Click the button to find out!</p>
+
+    <script>
+        const responses = [
+            "Nope, still here! 🌍",
+            "The world is fine. Go back to scrolling. 📱",
+            "It's fine… mostly. 🦖",
+            "Check your window… everything seems normal. 🌞",
+            "Everything is fine, for now… ⏳"
+        ];
+
+        const button = document.getElementById('checkButton');
+        const result = document.getElementById('result');
+
+        button.addEventListener('click', () => {
+            const randomIndex = Math.floor(Math.random() * responses.length);
+            result.textContent = responses[randomIndex];
+        });
+    </script>
+</body>
+</html>
