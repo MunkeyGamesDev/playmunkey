@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Particle Game</title>
+<style>
+body { 
+    margin: 0; 
+    background: #0a0a0a; 
+    color: white; 
+    font-family: 'Segoe UI', sans-serif; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    height: 100vh; 
+    overflow: hidden;
+}
+
+#header { 
+    width: 100%; 
+    background: linear-gradient(135deg, #1a1a2e, #16213e); 
+    padding: 10px; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5); 
+}
+
+#toolbar { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); 
+    gap: 4px; 
+    padding: 10px; 
+    background: #1a1a1a; 
+    border-radius: 8px; 
+    max-height: 180px; 
+    overflow-y: auto; 
+    scrollbar-width: thin;
+}
+
+.element-btn { 
+    width: 70px; 
+    height: 40px; 
+    border: none; 
+    cursor: pointer; 
+    border-radius: 6px; 
+    font-size: 10px; 
+    color: #000; 
+    font-weight: bold; 
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.7); 
+    transition: all 0.2s ease; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.element-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4); 
+}
+
+.element-btn.active { 
+    border: 2px solid #00ff00; 
+    box-shadow: 0 0 15px rgba(0,255,0,0.5); 
+}
+
+.category-header { 
+    grid-column: 1/-1; 
+    background: #333; 
+    color: #fff; 
+    text-align: center; 
+    padding: 6px; 
+    margin: 4px 0; 
+    border-radius: 4px; 
+    font-weight: bold; 
+    font-size: 11px;
+}
+
+#controls { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    flex-wrap: wrap;
+    gap: 20px; 
+    padding: 15px; 
+    background: #1a1a1a; 
+    border-radius: 8px; 
+    margin: 10px;
+}
+
+.control-group { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.control-btn { 
+    padding: 10px 20px; 
+    background: #333; 
+    color: #fff; 
+    border: none; 
+    border-radius: 6px; 
+    cursor: pointer; 
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.control-btn:hover { 
+    background: #555; 
+}
+
+.control-btn.active { 
+    background: #00aa00; 
+}
+
+canvas { 
+    border: 2px solid #444; 
+    background: #000; 
+    cursor: crosshair; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+#info-panel { 
+    position: absolute; 
+    top: 15px; 
+    right: 15px; 
+    background: rgba(0,0,0,0.85); 
+    padding: 15px; 
+    border-radius: 8px; 
+    min-width: 200px; 
+    backdrop-filter: blur(10px);
+    border: 1px solid #333;
+}
+
+#fps { 
+    color: #0f0; 
+    font-size: 16px; 
+    font-weight: bold; 
+    margin-bottom: 8px;
+}
+
+#particles { 
+    color: #aaa; 
+    font-size: 12px; 
+    margin-bottom: 10px;
+}
+
+#current-tool { 
+    color: #fff; 
+    font-size: 14px; 
+    font-weight: bold; 
+    margin-bottom: 8px;
+}
+
+#tool-info { 
+    color: #ccc; 
+    font-size: 11px; 
+    line-height: 1.4;
+}
+
+.slider-container { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+
+.slider { 
+    width: 100px; 
+}
+
+label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+#brushVal, #heatVal {
+    min-width: 30px;
+    text-align: center;
+    font-size: 13px;
+}
+</style>
+</head>
+<body>
+<div id="header">
+    <div id="toolbar"></div>
+</div>
+
+<div id="controls">
+    <div class="control-group">
+        <label>Brush Size:</label>
+        <div class="slider-container">
+            <input type="range" id="brush" class="slider" min="1" max="15" value="5">
+            <span id="brushVal">5</span>
+        </div>
+    </div>
+    
+    <div class="control-group">
+        <label>Temperature:</label>
+        <div class="slider-container">
+            <input type="range" id="heat" class="slider" min="0" max="100" value="25">
+            <span id="heatVal">25°C</span>
+        </div>
+    </div>
+    
+    <button class="control-btn" id="resetBtn">Reset</button>
+    <button class="control-btn" id="pauseBtn">Pause</button>
+    <button class="control-btn" id="speedBtn">x1 Speed</button>
+    <button class="control-btn" id="gravityBtn">Normal Gravity</button>
+    <button class="control-btn" id="rainBtn">Make Rain</button>
+</div>
+
+<div id="info-panel">
+    <div id="fps">FPS: --</div>
+    <div id="particles">Particles: 0</div>
+    <div id="current-tool">Current: Sand</div>
+    <div id="tool-info">Sand: Basic granular material, falls down</div>
+</div>
+
+<canvas id="game" width="800" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const gridSize = 2;
+const cols = canvas.width / gridSize;
+const rows = canvas.height / gridSize;
+
+const EMPTY = 0, SAND = 1, WATER = 2, FIRE = 3, WALL = 4, LAVA = 5, STONE = 6, OIL = 7, SMOKE = 8, STEAM = 9;
+const PLANT = 10, ACID = 11, ICE = 12, METAL = 13, ELEC = 14, GUNPOWDER = 15, WOOD = 16, GLASS = 17, SALT = 19;
+const VIRUS = 21, CRYSTAL = 22, MAGMA = 23, CONCRETE = 25, SNOW = 27, MUD = 28, HONEY = 29;
+const CLONE = 34, SEED = 35, DIAMOND = 36, LIQUID_N = 32;
+const LIFE = 48, FUNGUS = 56, CORAL = 57, ASH = 58, RADIATION = 59, WIRE = 61, BATTERY = 62;
+const CLOUD = 63; // New cloud particle type
+
+const names = [
+    "Empty", "Sand", "Water", "Fire", "Wall", "Lava", "Stone", "Oil", "Smoke", "Steam",
+    "Plant", "Acid", "Ice", "Metal", "Electricity", "Gunpowder", "Wood", "Glass", "", "Salt",
+    "", "Virus", "Crystal", "Magma", "", "Concrete", "", "Snow", "Mud", "Honey",
+    "", "", "Liquid N", "", "Clone", "Seed", "Diamond", "", "", "",
+    "", "", "", "", "", "", "", "",
+    "Life", "", "", "", "", "", "", "",
+    "Fungus", "Coral", "Ash", "Radiation", "", "Wire", "Battery", "Cloud"
+];
+
+let colors = {
+    1: "#DAA520", 2: "#4169E1", 3: "#FF4500", 4: "#696969", 5: "#FF6347", 6: "#2F4F4F", 7: "#8B4513", 8: "#D3D3D3", 9: "#F0F8FF", 10: "#228B22",
+    11: "#00FF00", 12: "#00CED1", 13: "#C0C0C0", 14: "#9370DB", 15: "#2F2F2F", 16: "#8B4513", 17: "#87CEEB", 19: "#FFFFFF",
+    21: "#800080", 22: "#FF1493", 23: "#DC143C", 25: "#808080", 27: "#FFFAFA", 28: "#8B4513", 29: "#FFD700",
+    32: "#87CEFA", 34: "#40E0D0", 35: "#228B22", 36: "#B9F2FF", 
+    48: "#00FF80", 
+    56: "#654321", 57: "#FF7F50", 58: "#696969", 59: "#00FF00", 61: "#FFD700", 62: "#FFA500",
+    63: "#C0C0C0" // Cloud color - light gray
+};
+
+let grid = Array(rows).fill().map(() => Array(cols).fill(EMPTY));
+let temperature = Array(rows).fill().map(() => Array(cols).fill(25));
+let velocity = Array(rows).fill().map(() => Array(cols).fill({x: 0, y: 0}));
+let batteryCharge = Array(rows).fill().map(() => Array(cols).fill(0));
+let cloudMoisture = Array(rows).fill().map(() => Array(cols).fill(0)); // New array for cloud moisture
+let waterContent = Array(rows).fill().map(() => Array(cols).fill(0)); // New array for water absorption
+
+let tool = SAND;
+let drawing = false;
+let paused = false;
+let brush = 5;
+let speed = 1;
+let gravity = 1;
+let ambientHeat = 25;
+let particleCount = 0;
+let globalRain = false; // Global rain toggle
+
+let toolbar = document.getElementById("toolbar");
+let fpsDisplay = document.getElementById("fps");
+let particleDisplay = document.getElementById("particles");
+let currentToolDisplay = document.getElementById("current-tool");
+let toolInfoDisplay = document.getElementById("tool-info");
+let brushSlider = document.getElementById("brush");
+let brushVal = document.getElementById("brushVal");
+let heatSlider = document.getElementById("heat");
+let heatVal = document.getElementById("heatVal");
+
+const categories = {
+    "Basic Elements": [SAND, WATER, FIRE, WALL, STONE, ASH],
+    "Liquids": [LAVA, OIL, ACID, HONEY, MUD],
+    "Gases": [SMOKE, STEAM, CLOUD],
+    "Organic": [PLANT, WOOD, SEED, VIRUS, LIFE, FUNGUS, CORAL],
+    "Metals": [METAL, CONCRETE, WIRE],
+    "Crystals": [ICE, SNOW, GLASS, CRYSTAL, DIAMOND, SALT],
+    "Energy": [ELEC, FIRE, BATTERY, RADIATION],
+    "Explosives": [GUNPOWDER, MAGMA],
+    "Special": [CLONE, LIQUID_N]
+};
+
+function initializeUI() {
+    brushSlider.oninput = () => {
+        brushVal.innerText = brushSlider.value;
+        brush = parseInt(brushSlider.value);
+    };
+    
+    heatSlider.oninput = () => {
+        ambientHeat = parseInt(heatSlider.value);
+        heatVal.innerText = ambientHeat + "°C";
+    };
+    
+    document.getElementById("resetBtn").onclick = () => {
+        grid = Array(rows).fill().map(() => Array(cols).fill(EMPTY));
+        temperature = Array(rows).fill().map(() => Array(cols).fill(25));
+        velocity = Array(rows).fill().map(() => Array(cols).fill({x: 0, y: 0}));
+        batteryCharge = Array(rows).fill().map(() => Array(cols).fill(0));
+        cloudMoisture = Array(rows).fill().map(() => Array(cols).fill(0));
+        waterContent = Array(rows).fill().map(() => Array(cols).fill(0));
+        globalRain = false;
+        document.getElementById("rainBtn").innerText = "Make Rain";
+        document.getElementById("rainBtn").classList.remove('active');
+    };
+    
+    document.getElementById("pauseBtn").onclick = () => {
+        paused = !paused;
+        document.getElementById("pauseBtn").innerHTML = paused ? "Resume" : "Pause";
+    };
+    
+    document.getElementById("speedBtn").onclick = () => {
+        speed = speed >= 4 ? 1 : speed + 1;
+        document.getElementById("speedBtn").innerHTML = `x${speed} Speed`;
+    };
+    
+    document.getElementById("gravityBtn").onclick = () => {
+        gravity = gravity === 1 ? 0 : gravity === 0 ? -1 : 1;
+        const text = gravity === 1 ? "Normal" : gravity === 0 ? "Zero" : "Reverse";
+        document.getElementById("gravityBtn").innerHTML = text + " Gravity";
+    };
+    
+    // New rain button
+    document.getElementById("rainBtn").onclick = () => {
+        globalRain = !globalRain;
+        const btn = document.getElementById("rainBtn");
+        btn.innerText = globalRain ? "Stop Rain" : "Make Rain";
+        if (globalRain) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    };
+}
+
+function createToolbar() {
+    Object.entries(categories).forEach(([category, particles]) => {
+        let header = document.createElement("div");
+        header.className = "category-header";
+        header.innerText = category;
+        toolbar.appendChild(header);
+        
+        particles.forEach(type => {
+            if (type > 0) {
+                let btn = document.createElement("button");
+                btn.className = "element-btn";
+                btn.style.backgroundColor = colors[type];
+                btn.innerText = names[type];
+                btn.title = getParticleInfo(type);
+                btn.onclick = () => {
+                    document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    tool = type;
+                    currentToolDisplay.innerText = "Current: " + names[type];
+                    toolInfoDisplay.innerText = getParticleInfo(type);
+                };
+                toolbar.appendChild(btn);
+            }
+        });
+    });
+}
+
+function getParticleInfo(type) {
+    const info = {
+        [SAND]: "Sand: Basic granular material, absorbs water to become mud",
+        [WATER]: "Water: Universal solvent, conducts electricity, freezes/boils, absorbed by sand",
+        [FIRE]: "Fire: Burns flammables, creates heat, rises as smoke",
+        [WALL]: "Wall: Indestructible barrier",
+        [LAVA]: "Lava: Molten rock, extremely hot, solidifies to stone",
+        [STONE]: "Stone: Solid rock, high melting point",
+        [OIL]: "Oil: Flammable liquid, less dense than water",
+        [SMOKE]: "Smoke: Byproduct of combustion, rises and dissipates",
+        [STEAM]: "Steam: Water vapor, rises and condenses",
+        [PLANT]: "Plant: Organic matter, grows with water, burns easily",
+        [ACID]: "Acid: Corrosive liquid, dissolves most materials",
+        [ICE]: "Ice: Frozen water, melts when heated",
+        [METAL]: "Metal: Conductive solid, rusts in water, melts at high temp",
+        [ELEC]: "Electricity: Energy that spreads through conductors",
+        [GUNPOWDER]: "Gunpowder: Explosive powder, ignites with fire/electricity",
+        [WOOD]: "Wood: Organic solid, burns easily, floats on water",
+        [GLASS]: "Glass: Transparent solid, breaks under pressure/heat",
+        [SALT]: "Salt: Crystalline solid, dissolves in water",
+        [VIRUS]: "Virus: Infectious agent, spreads through organics",
+        [CRYSTAL]: "Crystal: Growing solid, conducts electricity",
+        [MAGMA]: "Magma: Ultra-hot molten rock, hotter than lava",
+        [CONCRETE]: "Concrete: Strong building material",
+        [SNOW]: "Snow: Frozen precipitation, melts slowly",
+        [MUD]: "Mud: Thick mixture of earth and water, can absorb more water",
+        [HONEY]: "Honey: Viscous liquid, flows very slowly",
+        [LIQUID_N]: "Liquid Nitrogen: Cryogenic fluid, freezes everything",
+        [CLONE]: "Clone: Mimics adjacent particles",
+        [SEED]: "Seed: Plant embryo, grows into trees",
+        [DIAMOND]: "Diamond: Hardest material, extremely high melting point",
+        [LIFE]: "Life: Creative force, spawns organic matter",
+        [FUNGUS]: "Fungus: Spreads through organic matter, grows upward",
+        [CORAL]: "Coral: Marine organism, only grows when touching water",
+        [ASH]: "Ash: Combustion residue, dissolves in water",
+        [RADIATION]: "Radiation: Mutates nearby particles randomly",
+        [WIRE]: "Wire: Conducts electricity without being destroyed",
+        [BATTERY]: "Battery: Stores and releases electrical energy",
+        [CLOUD]: "Cloud: Water vapor that accumulates moisture and produces rain"
+    };
+    return info[type] || "Unknown particle";
+}
+
+canvas.addEventListener("mousedown", (e) => {
+    drawing = true;
+    place(e);
+});
+canvas.addEventListener("mouseup", () => drawing = false);
+canvas.addEventListener("mouseleave", () => drawing = false);
+canvas.addEventListener("mousemove", e => {
+    if (drawing) place(e);
+});
+
+function place(e) {
+    const rect = canvas.getBoundingClientRect();
+    const x = Math.floor((e.clientX - rect.left) / gridSize);
+    const y = Math.floor((e.clientY - rect.top) / gridSize);
+    
+    for (let dy = -brush; dy <= brush; dy++) {
+        for (let dx = -brush; dx <= brush; dx++) {
+            if (dx * dx + dy * dy <= brush * brush) {
+                let nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                    if (tool === EMPTY || grid[ny][nx] !== WALL) {
+                        grid[ny][nx] = tool;
+                        temperature[ny][nx] = ambientHeat;
+                        velocity[ny][nx] = {x: 0, y: 0};
+                        batteryCharge[ny][nx] = 0;
+                        cloudMoisture[ny][nx] = tool === CLOUD ? 50 : 0; // Initialize clouds with moisture
+                        waterContent[ny][nx] = 0; // Initialize water content
+                    }
+                }
+            }
+        }
+    }
+}
+
+function swap(x, y, nx, ny) {
+    let temp = grid[ny][nx];
+    grid[ny][nx] = grid[y][x];
+    grid[y][x] = temp;
+    
+    let tempT = temperature[ny][nx];
+    temperature[ny][nx] = temperature[y][x];
+    temperature[y][x] = tempT;
+    
+    let tempV = velocity[ny][nx];
+    velocity[ny][nx] = velocity[y][x];
+    velocity[y][x] = tempV;
+    
+    let tempB = batteryCharge[ny][nx];
+    batteryCharge[ny][nx] = batteryCharge[y][x];
+    batteryCharge[y][x] = tempB;
+    
+    let tempC = cloudMoisture[ny][nx];
+    cloudMoisture[ny][nx] = cloudMoisture[y][x];
+    cloudMoisture[y][x] = tempC;
+    
+    let tempW = waterContent[ny][nx];
+    waterContent[ny][nx] = waterContent[y][x];
+    waterContent[y][x] = tempW;
+}
+
+function inBounds(x, y) {
+    return x >= 0 && x < cols && y >= 0 && y < rows;
+}
+
+function getNeighbors(x, y, radius = 1) {
+    let neighbors = [];
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            let nx = x + dx, ny = y + dy;
+            if (inBounds(nx, ny)) {
+                neighbors.push([nx, ny]);
+            }
+        }
+    }
+    return neighbors;
+}
+
+function explode(x, y, radius, power = 1) {
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            if (dx * dx + dy * dy <= radius * radius) {
+                let nx = x + dx, ny = y + dy;
+                if (inBounds(nx, ny) && grid[ny][nx] !== WALL && grid[ny][nx] !== DIAMOND) {
+                    if (Math.random() < 0.7 * power) {
+                        grid[ny][nx] = Math.random() < 0.3 ? FIRE : EMPTY;
+                        temperature[ny][nx] = 1000;
+                        let dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist > 0) {
+                            velocity[ny][nx].x += (dx / dist) * power * 5;
+                            velocity[ny][nx].y += (dy / dist) * power * 5;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+function createRainFromClouds() {
+    // Go through all clouds and make them produce rain occasionally
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            if (grid[y][x] === CLOUD) {
+                // Accumulate moisture from nearby steam
+                let neighbors = getNeighbors(x, y);
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === STEAM && Math.random() < 0.1) {
+                        cloudMoisture[y][x] = Math.min(cloudMoisture[y][x] + 5, 100);
+                        grid[ny][nx] = EMPTY; // Steam absorbed by cloud
+                    }
+                });
+                
+                // Produce rain when moisture is high enough
+                if (cloudMoisture[y][x] > 20 && Math.random() < 0.08) {
+                    // Find empty space below the cloud to drop water
+                    for (let dropY = y + 1; dropY < rows; dropY++) {
+                        if (inBounds(x, dropY) && grid[dropY][x] === EMPTY) {
+                            grid[dropY][x] = WATER;
+                            cloudMoisture[y][x] -= 2; // Reduce cloud moisture
+                            break;
+                        } else if (grid[dropY][x] !== EMPTY) {
+                            break; // Hit something, stop looking
+                        }
+                    }
+                }
+                
+                // Clouds slowly lose moisture over time
+                if (Math.random() < 0.01) {
+                    cloudMoisture[y][x] = Math.max(0, cloudMoisture[y][x] - 1);
+                }
+            }
+        }
+    }
+}
+
+function createGlobalRain() {
+    if (!globalRain) return;
+    
+    // Create rain drops from random positions at the top
+    for (let x = 0; x < cols; x += 3) {
+        if (Math.random() < 0.15) { // 15% chance for each column
+            let rainX = x + Math.floor(Math.random() * 3); // Add some randomness
+            if (rainX >= 0 && rainX < cols && grid[0][rainX] === EMPTY) {
+                grid[0][rainX] = WATER;
+                velocity[0][rainX] = {x: Math.random() * 2 - 1, y: 2}; // Small horizontal velocity
+            }
+        }
+    }
+}
+
+function update() {
+    if (paused) return;
+    
+    particleCount = 0;
+    updateTemperature();
+    createRainFromClouds(); // Create rain from clouds
+    createGlobalRain(); // Create global rain if enabled
+    
+    for (let y = rows - 2; y >= 0; y--) {
+        for (let x = 0; x < cols; x++) {
+            let c = grid[y][x];
+            if (c === EMPTY) continue;
+            
+            particleCount++;
+            let temp = temperature[y][x];
+            let vel = velocity[y][x];
+            let neighbors = getNeighbors(x, y);
+            
+            vel.y += gravity * 0.1;
+            vel.x *= 0.95;
+            vel.y *= 0.95;
+            
+            updateParticle(x, y, c, temp, vel, neighbors);
+        }
+    }
+}
+
+function updateTemperature() {
+    let newTemp = Array(rows).fill().map(() => Array(cols).fill(0));
+    
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            let temp = temperature[y][x];
+            let neighbors = getNeighbors(x, y);
+            
+            let avgTemp = temp;
+            let count = 1;
+            
+            neighbors.forEach(([nx, ny]) => {
+                avgTemp += temperature[ny][nx];
+                count++;
+            });
+            
+            newTemp[y][x] = avgTemp / count;
+            newTemp[y][x] += (ambientHeat - newTemp[y][x]) * 0.01;
+        }
+    }
+    
+    temperature = newTemp;
+}
+
+
+
+
+function updateParticle(x, y, c, temp, vel, neighbors) {
+    if (c === WATER && temp < 0) {
+        grid[y][x] = ICE;
+        return;
+    }
+    if (c === ICE && temp > 0) {
+        grid[y][x] = WATER;
+        return;
+    }
+    if (c === WATER && temp > 100) {
+        grid[y][x] = STEAM;
+        temperature[y][x] = temp;
+        return;
+    }
+    
+    switch (c) {
+        
+        case SAND:
+            // Sand absorbs water and turns into mud
+            neighbors.forEach(([nx, ny]) => {
+                if (grid[ny][nx] === WATER && Math.random() < 0.2) {
+                    grid[y][x] = MUD;
+                    grid[ny][nx] = EMPTY; // Water is absorbed
+                    waterContent[y][x] = 50; // Set initial water content for mud
+                }
+            });
+            
+            // Normal sand falling behavior
+            if (y + 1 < rows && grid[y + 1][x] === EMPTY) {
+                swap(x, y, x, y + 1);
+            } else {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                if (inBounds(x + dir, y + 1) && grid[y + 1][x + dir] === EMPTY) {
+                    swap(x, y, x + dir, y + 1);
+                }
+            }
+            break;
+            
+        case MUD:
+            // Mud can absorb more water
+            neighbors.forEach(([nx, ny]) => {
+                if (grid[ny][nx] === WATER && Math.random() < 0.15 && waterContent[y][x] < 100) {
+                    grid[ny][nx] = EMPTY; // Water is absorbed
+                    waterContent[y][x] = Math.min(waterContent[y][x] + 25, 100); // Increase water content
+                }
+            });
+            
+            // Mud falls slower than sand and has more liquid-like properties
+            if (y + 1 < rows && grid[y + 1][x] === EMPTY) {
+                if (Math.random() < 0.8) { // 80% chance to fall (slower than sand)
+                    swap(x, y, x, y + 1);
+                }
+            } else {
+                // Mud can flow sideways more easily when saturated
+                let flowChance = waterContent[y][x] > 75 ? 0.4 : 0.2;
+                let dirs = [-1, 1];
+                dirs.forEach(dir => {
+                    if (inBounds(x + dir, y) && grid[y][x + dir] === EMPTY && Math.random() < flowChance) {
+                        swap(x, y, x + dir, y);
+                    }
+                });
+                
+                // Also try diagonal movement
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                if (inBounds(x + dir, y + 1) && grid[y + 1][x + dir] === EMPTY && Math.random() < flowChance) {
+                    swap(x, y, x + dir, y + 1);
+                }
+            }
+            
+            // Mud slowly dries out over time
+            if (Math.random() < 0.002) {
+                waterContent[y][x] = Math.max(0, waterContent[y][x] - 1);
+                if (waterContent[y][x] < 10) {
+                    grid[y][x] = SAND; // Mud dries back to sand
+                    waterContent[y][x] = 0;
+                }
+            }
+            break;
+            
+        case GUNPOWDER:
+        case SALT:
+        case SNOW:
+            if (y + 1 < rows && grid[y + 1][x] === EMPTY) {
+                swap(x, y, x, y + 1);
+            } else {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                if (inBounds(x + dir, y + 1) && grid[y + 1][x + dir] === EMPTY) {
+                    swap(x, y, x + dir, y + 1);
+                }
+            }
+            break;
+            
+        case WATER:
+        case OIL:
+        case LAVA:
+        case ACID:
+        case HONEY:
+        case MAGMA:
+            if (y + 1 < rows && grid[y + 1][x] === EMPTY) {
+                swap(x, y, x, y + 1);
+            } else {
+                let dirs = [-1, 1];
+                dirs.forEach(dir => {
+                    if (inBounds(x + dir, y) && grid[y][x + dir] === EMPTY && Math.random() < 0.5) {
+                        swap(x, y, x + dir, y);
+                    }
+                });
+            }
+            break;
+            
+        case SMOKE:
+        case STEAM:
+        case CLOUD:
+            if (y > 0 && grid[y - 1][x] === EMPTY) {
+                swap(x, y, x, y - 1);
+            } else {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                if (inBounds(x + dir, y) && grid[y][x + dir] === EMPTY && Math.random() < 0.3) {
+                    swap(x, y, x + dir, y);
+                }
+            }
+            
+            // Special behavior for different gas types
+            if (c === SMOKE || c === STEAM) {
+                if (Math.random() < 0.01) grid[y][x] = EMPTY;
+            } else if (c === CLOUD) {
+                // Clouds don't dissipate like smoke/steam
+                // They can merge with other clouds or grow
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === STEAM && Math.random() < 0.05) {
+                        cloudMoisture[y][x] = Math.min(cloudMoisture[y][x] + 3, 100);
+                    }
+                });
+            }
+            break;
+            
+        case FIRE:
+            temperature[y][x] = Math.max(temp, 800);
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if ([OIL, WOOD, PLANT, SEED, HONEY, GUNPOWDER, FUNGUS].includes(target)) {
+                    grid[ny][nx] = FIRE;
+                    temperature[ny][nx] = 800;
+                }
+                if (target === WATER && Math.random() < 0.1) {
+                    grid[ny][nx] = STEAM;
+                }
+                if ([ICE, SNOW].includes(target)) {
+                    grid[ny][nx] = WATER;
+                }
+            });
+            if (Math.random() < 0.02) {
+                grid[y][x] = Math.random() < 0.3 ? ASH : SMOKE;
+            }
+            break;
+            
+        case ELEC:
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if ([WATER, METAL, CRYSTAL, WIRE].includes(target)) {
+                    if (target === WIRE) {
+                        let wireNeighbors = getNeighbors(nx, ny);
+                        wireNeighbors.forEach(([wnx, wny]) => {
+                            if (grid[wny][wnx] === EMPTY && Math.random() < 0.3) {
+                                grid[wny][wnx] = ELEC;
+                            }
+                        });
+                    } else {
+                        grid[ny][nx] = ELEC;
+                    }
+                }
+                if ([OIL, PLANT, WOOD, GUNPOWDER].includes(target)) {
+                    grid[ny][nx] = FIRE;
+                }
+            });
+            if (Math.random() < 0.1) grid[y][x] = EMPTY;
+            break;
+            
+        case ACID:
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if (![EMPTY, WALL, DIAMOND].includes(target) && Math.random() < 0.08) {
+                    grid[ny][nx] = Math.random() < 0.3 ? SMOKE : EMPTY;
+                }
+            });
+            break;
+            
+        case VIRUS:
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if ([PLANT, WOOD, SEED, LIFE].includes(target) && Math.random() < 0.05) {
+                    grid[ny][nx] = VIRUS;
+                }
+            });
+            if (Math.random() < 0.001) grid[y][x] = EMPTY;
+            break;
+            
+        case CRYSTAL:
+            if (Math.random() < 0.002) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === WATER && Math.random() < 0.3) {
+                        grid[ny][nx] = CRYSTAL;
+                    }
+                });
+            }
+            break;
+            
+        case CLONE:
+            if (Math.random() < 0.1) {
+                let targets = neighbors.filter(([nx, ny]) => {
+                    let t = grid[ny][nx];
+                    return ![EMPTY, WALL, CLONE].includes(t);
+                });
+                if (targets.length > 0) {
+                    let [tx, ty] = targets[Math.floor(Math.random() * targets.length)];
+                    grid[y][x] = grid[ty][tx];
+                }
+            }
+            break;
+            
+        case SEED:
+            if (y + 1 < rows && [MUD, SAND, PLANT].includes(grid[y + 1][x])) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === WATER && Math.random() < 0.02) {
+                        grid[y][x] = WOOD;
+                        if (y > 0) grid[y - 1][x] = PLANT;
+                    }
+                });
+            }
+            break;
+            
+        case PLANT:
+            if (Math.random() < 0.01) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === EMPTY && Math.random() < 0.1) {
+                        grid[ny][nx] = PLANT;
+                    }
+                });
+            }
+            break;
+            
+        case GUNPOWDER:
+            neighbors.forEach(([nx, ny]) => {
+                if ([FIRE, ELEC].includes(grid[ny][nx])) {
+                    explode(x, y, 6, 2);
+                    return;
+                }
+            });
+            break;
+            
+        case LIQUID_N:
+            temperature[y][x] = -196;
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if (target === WATER) grid[ny][nx] = ICE;
+                if ([LAVA, MAGMA, FIRE].includes(target)) {
+                    grid[ny][nx] = target === LAVA ? STONE : EMPTY;
+                }
+                temperature[ny][nx] = Math.min(temperature[ny][nx], -100);
+            });
+            break;
+            
+        case LIFE:
+            if (Math.random() < 0.01) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === EMPTY && Math.random() < 0.2) {
+                        let lifeforms = [PLANT, SEED];
+                        grid[ny][nx] = lifeforms[Math.floor(Math.random() * lifeforms.length)];
+                    }
+                });
+            }
+            break;
+            
+        case FUNGUS:
+            if (Math.random() < 0.015) {
+                neighbors.forEach(([nx, ny]) => {
+                    let target = grid[ny][nx];
+                    if ((target === EMPTY || target === PLANT) && Math.random() < 0.3) {
+                        grid[ny][nx] = FUNGUS;
+                    }
+                    if (target !== EMPTY && target !== WALL && ny > 0 && grid[ny - 1][nx] === EMPTY && Math.random() < 0.1) {
+                        grid[ny - 1][nx] = FUNGUS;
+                    }
+                });
+            }
+            break;
+            
+        case CORAL:
+            let touchingWater = neighbors.some(([nx, ny]) => grid[ny][nx] === WATER);
+            if (touchingWater && Math.random() < 0.008) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === EMPTY && Math.random() < 0.2) {
+                        grid[ny][nx] = CORAL;
+                    }
+                });
+            }
+            break;
+            
+        case ASH:
+            if (y + 1 < rows && grid[y + 1][x] === EMPTY) {
+                swap(x, y, x, y + 1);
+            } else {
+                let dir = Math.random() < 0.5 ? -1 : 1;
+                if (inBounds(x + dir, y + 1) && grid[y + 1][x + dir] === EMPTY) {
+                    swap(x, y, x + dir, y + 1);
+                }
+            }
+            neighbors.forEach(([nx, ny]) => {
+                if (grid[ny][nx] === WATER && Math.random() < 0.1) {
+                    grid[y][x] = EMPTY;
+                }
+            });
+            break;
+            
+        case RADIATION:
+            if (Math.random() < 0.02) {
+                neighbors.forEach(([nx, ny]) => {
+                    let target = grid[ny][nx];
+                    if (target !== EMPTY && target !== WALL && target !== RADIATION && Math.random() < 0.05) {
+                        let possibilities = [SAND, WATER, FIRE, STONE, METAL, CRYSTAL, PLANT, ACID, SMOKE, VIRUS];
+                        grid[ny][nx] = possibilities[Math.floor(Math.random() * possibilities.length)];
+                    }
+                });
+            }
+            break;
+            
+        case WIRE:
+            neighbors.forEach(([nx, ny]) => {
+                let target = grid[ny][nx];
+                if (target === ELEC) {
+                    let wireNeighbors = getNeighbors(x, y);
+                    wireNeighbors.forEach(([wnx, wny]) => {
+                        if (grid[wny][wnx] === WIRE && Math.random() < 0.8) {
+                            let wireN = getNeighbors(wnx, wny);
+                            wireN.forEach(([wnnx, wnny]) => {
+                                if (grid[wnny][wnnx] === EMPTY && Math.random() < 0.3) {
+                                    grid[wnny][wnnx] = ELEC;
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+            break;
+            
+case BATTERY:
+            let charge = batteryCharge[y][x];
+
+            
+            neighbors.forEach(([nx, ny]) => {
+                if (grid[ny][nx] === ELEC) {
+                    batteryCharge[y][x] = Math.min(charge + 25, 200);
+                    grid[ny][nx] = EMPTY;
+                }
+            });
+
+            
+            if (batteryCharge[y][x] > 0) {
+                neighbors.forEach(([nx, ny]) => {
+                    if (grid[ny][nx] === BATTERY) {
+                        
+                        if (batteryCharge[ny][nx] < batteryCharge[y][x]) {
+                            batteryCharge[ny][nx] = batteryCharge[y][x];
+                        }
+                    }
+                });
+            }
+
+           
+            if (batteryCharge[y][x] >= 200) {
+                let discharged = false;
+                neighbors.forEach(([nx, ny]) => {
+                    let target = grid[ny][nx];
+                    
+                    if ([EMPTY, WIRE, METAL, WATER].includes(target) && Math.random() < 0.3) {
+                        grid[ny][nx] = ELEC;
+                        discharged = true;
+                    }
+                });
+
+                
+                if (discharged || Math.random() < 0.1) {
+                    batteryCharge[y][x] = 0;
+                }
+            }
+            break;
+
+}
+
+    
+    if (Math.abs(vel.x) > 0.1 || Math.abs(vel.y) > 0.1) {
+        let nextX = Math.round(x + vel.x * 0.5);
+        let nextY = Math.round(y + vel.y * 0.5);
+        
+        if (inBounds(nextX, nextY) && grid[nextY][nextX] === EMPTY) {
+            swap(x, y, nextX, nextY);
+        } else {
+            vel.x *= -0.3;
+            vel.y *= -0.3;
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            let c = grid[y][x];
+            if (c !== EMPTY) {
+                let baseColor = colors[c];
+                let temp = temperature[y][x];
+                
+                let color = baseColor;
+                if (temp > 100) {
+                    let heat = Math.min((temp - 100) / 500, 1);
+                    color = `rgb(${255}, ${Math.floor(255 * (1 - heat * 0.5))}, ${Math.floor(255 * (1 - heat))})`;
+                } else if (temp < 0) {
+                    let cold = Math.min(Math.abs(temp) / 100, 1);
+                    color = `rgb(${Math.floor(255 * (1 - cold * 0.5))}, ${Math.floor(255 * (1 - cold * 0.5))}, ${255})`;
+                }
+                
+                if ([FIRE, ELEC].includes(c)) {
+                    let glow = Math.random() * 0.3 + 0.7;
+                    ctx.globalAlpha = glow;
+                }
+                
+                if (c === BATTERY) {
+                    let charge = batteryCharge[y][x] / 200;
+                    let r = Math.floor(255 * (1 - charge));
+                    let g = Math.floor(255 * charge);
+                    color = `rgb(${r}, ${g}, 0)`;
+                }
+                
+                if (c === CLOUD) {
+                    // Make clouds more transparent and vary color based on moisture
+                    let moisture = cloudMoisture[y][x] / 100;
+                    let alpha = 0.7 + moisture * 0.3;
+                    let gray = Math.floor(192 + moisture * 63); // 192-255 range
+                    color = `rgba(${gray}, ${gray}, ${gray}, ${alpha})`;
+                    ctx.globalAlpha = alpha;
+                }
+                
+                if (c === MUD) {
+                    // Make mud color vary based on water content
+                    let wetness = waterContent[y][x] / 100;
+                    let r = Math.floor(139 * (1 - wetness * 0.3)); // Base brown red component
+                    let g = Math.floor(69 * (1 - wetness * 0.2));  // Base brown green component
+                    let b = Math.floor(19 * (1 + wetness * 0.5));  // Base brown blue component
+                    color = `rgb(${r}, ${g}, ${b})`;
+                }
+                
+                ctx.fillStyle = color;
+                ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+    }
+}
+
+let lastTime = performance.now();
+let frames = 0;
+let fps = 0;
+
+function loop(now) {
+    requestAnimationFrame(loop);
+    
+    if (!paused) {
+        for (let i = 0; i < speed; i++) {
+            update();
+        }
+    }
+    
+    draw();
+    
+    frames++;
+    if (now - lastTime > 1000) {
+        fps = frames;
+        frames = 0;
+        lastTime = now;
+        
+        fpsDisplay.innerText = `FPS: ${fps}`;
+        particleDisplay.innerText = `Particles: ${particleCount.toLocaleString()}`;
+    }
+}
+
+initializeUI();
+createToolbar();
+currentToolDisplay.innerText = "Current: " + names[tool];
+toolInfoDisplay.innerText = getParticleInfo(tool);
+
+loop(performance.now());
+</script>
+</body>
+</html>
