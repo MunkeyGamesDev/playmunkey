@@ -20,47 +20,51 @@ header {
   border-radius: 6px;
 }
 
-#games-container {
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
   padding: 40px;
 }
 
 .game-card {
+  position: relative;
   display: block;
-  background: #1c1c1c;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
+  cursor: pointer;
   text-decoration: none;
   color: white;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
 .game-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 20px rgba(255,255,255,0.2);
+  transform: scale(1.05);
 }
 
-.game-card-img {
+.game-card img {
   width: 100%;
-  display: block;
-  aspect-ratio: 16/9;
+  height: 200px;
   object-fit: cover;
+  display: block;
 }
 
-.game-card-info {
-  padding: 15px 20px;
-  text-align: left;
+.game-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  padding: 10px;
 }
 
-.game-card-info h3 {
-  margin: 0 0 5px 0;
-  font-size: 1.2rem;
-}
-
-.game-card-info p {
+.game-overlay h3 {
   margin: 0;
+  font-size: 1.1rem;
+}
+
+.game-overlay p {
+  margin: 5px 0 0;
   font-size: 0.9rem;
   opacity: 0.8;
 }
