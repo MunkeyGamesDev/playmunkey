@@ -1,20 +1,22 @@
 fetch('/games.json')
-  .then(r => r.json())
+  .then(res => res.json())
   .then(data => {
     const container = document.getElementById('games-container');
     container.innerHTML = '';
 
     data.games.forEach(game => {
-      const link = document.createElement('a');
-      link.className = 'card';
-      link.href = '/games/' + game.file;
-      link.target = '_blank';
+      const card = document.createElement('a');
+      card.className = 'game-card';
+      card.href = '/games/' + game.file;
+      card.target = '_blank';
 
       const img = document.createElement('img');
+      img.className = 'game-card-img';
       img.src = '/games/' + game.image;
-      img.className = 'game-img';
-      img.loading = 'lazy';
-      img.onerror = () => img.remove();
+      img.alt = game.title;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'game-card-info';
 
       const title = document.createElement('h3');
       title.textContent = game.title;
@@ -22,11 +24,13 @@ fetch('/games.json')
       const desc = document.createElement('p');
       desc.textContent = game.description;
 
-      link.appendChild(img);
-      link.appendChild(title);
-      link.appendChild(desc);
+      overlay.appendChild(title);
+      overlay.appendChild(desc);
 
-      container.appendChild(link);
+      card.appendChild(img);
+      card.appendChild(overlay);
+
+      container.appendChild(card);
     });
   })
   .catch(err => console.error(err));
