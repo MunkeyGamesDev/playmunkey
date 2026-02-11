@@ -7,10 +7,19 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-    body {
+    /* Make body full height and use flex layout */
+    html, body {
+      height: 100%;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
       background-color: #0f111a;
       color: #fff;
       font-family: "Courier New", monospace;
+      cursor: default;
+    }
+
+    body {
       background-image: repeating-linear-gradient(
         0deg,
         rgba(0, 255, 0, 0.05) 0,
@@ -21,8 +30,10 @@
       background-size: 100% 20px;
       overflow-x: hidden;
       position: relative;
-      margin: 0;
-      cursor: default;
+    }
+
+    main {
+      flex: 1; /* Take up all available space so footer stays at bottom */
     }
 
     @keyframes moveCode {
@@ -42,6 +53,7 @@
       background-size: 10px 10px;
       pointer-events: none;
       animation: moveCode 5s linear infinite;
+      z-index: 0;
     }
 
     a.discord {
@@ -50,7 +62,11 @@
       font-weight: bold;
     }
 
-    /* 🐵 Wobble animation */
+    h1 span.emoji-wobble {
+      display: inline-block;
+      cursor: pointer;
+    }
+
     @keyframes wobble {
       0%, 100% { transform: rotate(0deg); }
       15% { transform: rotate(-15deg); }
@@ -60,16 +76,10 @@
       75% { transform: rotate(-5deg); }
     }
 
-    h1 span.emoji-wobble {
-      display: inline-block;
-      cursor: pointer;
-    }
-
     h1 span.emoji-wobble.wobble {
       animation: wobble 0.6s ease;
     }
 
-    /* Binary particle style */
     .binary-particle {
       position: absolute;
       font-family: monospace;
@@ -77,6 +87,7 @@
       pointer-events: none;
       user-select: none;
       animation: fly 0.8s forwards;
+      z-index: 2; /* make sure particles appear above footer */
     }
 
     @keyframes fly {
@@ -84,13 +95,12 @@
       100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
     }
 
-    /* Footer styling */
     footer {
       text-align: center;
-      padding: 5px 0;   /* smaller vertical padding */
-      font-size: 12px;  /* smaller text */
-      background-color: #0d0f14; 
-      position: relative; /* ensures particles can appear over it */
+      padding: 5px 0;
+      font-size: 12px;
+      background-color: #0d0f14;
+      position: relative;
       z-index: 1;
     }
   </style>
@@ -112,7 +122,7 @@
 </footer>
 
 <script>
-  // 🐵 Wobble on click
+  // 🐵 Wobble
   const monkey = document.querySelector('.emoji-wobble');
   monkey.addEventListener('click', () => {
     monkey.classList.remove('wobble'); 
@@ -120,7 +130,7 @@
     monkey.classList.add('wobble');
   });
 
-  // Binary explosion on document click
+  // Binary explosion
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('emoji-wobble')) return;
 
@@ -130,11 +140,9 @@
       particle.classList.add('binary-particle');
       particle.textContent = Math.random() > 0.5 ? '0' : '1';
 
-      // Position at click
       particle.style.left = e.pageX + 'px';
       particle.style.top = e.pageY + 'px';
 
-      // Random direction
       const dx = (Math.random() - 0.5) * 200 + 'px';
       const dy = (Math.random() - 0.5) * 200 + 'px';
       particle.style.setProperty('--dx', dx);
@@ -142,10 +150,7 @@
 
       document.body.appendChild(particle);
 
-      // Remove after animation
-      particle.addEventListener('animationend', () => {
-        particle.remove();
-      });
+      particle.addEventListener('animationend', () => particle.remove());
     }
   });
 </script>
