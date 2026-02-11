@@ -11,12 +11,12 @@ fetch('/games.json')
       card.target = '_blank';
 
       const img = document.createElement('img');
-      img.className = 'game-card-img';
+      img.className = 'game-img';
       img.src = '/games/' + game.image;
       img.alt = game.title;
 
       const overlay = document.createElement('div');
-      overlay.className = 'game-card-info';
+      overlay.className = 'game-overlay';
 
       const title = document.createElement('h3');
       title.textContent = game.title;
@@ -29,7 +29,6 @@ fetch('/games.json')
 
       card.appendChild(img);
       card.appendChild(overlay);
-
       container.appendChild(card);
     });
   })
