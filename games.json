@@ -2,8 +2,9 @@
   "games": [
     {
       "title": "Particle Game",
-      "description": "Simulation Sandbox!",
-      "file": "particlegame.html"
+      "description": "Sandbox Simulation!",
+      "file": "particlegame.html",
+      "image": "particlegame.jpg"
     }
   ]
 }
