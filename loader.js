@@ -8,10 +8,16 @@ fetch('games.json')
       card.className = 'card';
 
       card.innerHTML = `
-        <h3>${game.title}</h3>
-        <p>${game.description}</p>
-        <a href="games/${game.file}" target="_blank">Play</a>
+        <div class="card-bg" style="background-image: url('games/${game.image}')"></div>
+        <div class="card-content">
+          <h3>${game.title}</h3>
+          <p>${game.description}</p>
+        </div>
       `;
+
+      card.onclick = () => {
+        window.location.href = `games/${game.file}`;
+      };
 
       container.appendChild(card);
     });
