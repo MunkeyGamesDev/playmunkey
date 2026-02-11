@@ -1,18 +1,16 @@
-fetch('games.json')
-  .then(response => response.json())
+fetch('/games.json')
+  .then(res => res.json())
   .then(data => {
     const container = document.getElementById('games-container');
+    container.innerHTML = '';
 
     data.games.forEach(game => {
       const card = document.createElement('div');
       card.className = 'card';
 
-      const img = document.createElement('img');
+      const img = new Image();
       img.className = 'game-img';
-      img.src = 'games/' + game.image;
-      img.onerror = function () {
-        this.style.display = 'none';
-      };
+      img.src = '/games/' + game.image;
 
       const title = document.createElement('h3');
       title.textContent = game.title;
@@ -21,7 +19,7 @@ fetch('games.json')
       desc.textContent = game.description;
 
       const link = document.createElement('a');
-      link.href = 'games/' + game.file;
+      link.href = '/games/' + game.file;
       link.target = '_blank';
       link.textContent = 'Play';
 
@@ -33,6 +31,4 @@ fetch('games.json')
       container.appendChild(card);
     });
   })
-  .catch(err => {
-    console.error(err);
-  });
+  .catch(err => console.error(err));
