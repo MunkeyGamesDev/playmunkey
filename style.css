@@ -44,6 +44,12 @@ header {
   font-weight: bold;
 }
 
+.game-img {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
 footer {
   padding: 20px;
   opacity: 0.5;
