@@ -18,6 +18,7 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
 .choice{font-size:3em;background:#e0e0e0;border:2px solid #000;padding:15px;border-radius:8px;cursor:pointer;position:relative;transition:transform 0.2s}
 .choice:hover{transform:scale(1.5) rotate(5deg)}
 .choice:hover::after{content:attr(data-name);position:absolute;top:-2.5em;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:0.6em;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.choice.disabled{opacity:0.5;pointer-events:none;}
 .panel{width:100%;background:#c0c0c0;border:2px solid #000;padding:10px;margin-top:10px;box-sizing:border-box;min-height:60px;font-size:0.7em;color:#000;text-align:center;transition:all 0.3s}
 .scoreboard{font-size:0.7em;margin-top:5px;padding:5px;background:#e0e0e0;border:2px solid #000;width:100%;text-align:center;position:relative}
 .confetti-piece{position:absolute;width:10px;height:10px;background:red;opacity:0.8;pointer-events:none;animation:confetti-fall 2s linear forwards}
@@ -40,6 +41,7 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
 .multi-input-group input{padding:10px;font-size:1em;margin:10px;width:200px;text-align:center;border:2px solid #000;border-radius:5px;background:#fff;font-family:'Press Start 2P',cursive;}
 .code-display{font-size:2em;color:#ff0;text-shadow:2px 2px 0 #000;margin:15px 0;padding:15px;background:#000;border-radius:8px;}
 .status-box{margin:15px 0;padding:15px;background:#e0e0e0;border:2px solid #000;border-radius:8px;font-size:0.7em;text-align:center;}
+
 </style>
 <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
@@ -50,11 +52,17 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
     <h1>🎮 Infinite RPS 🎮</h1>
     <div class="button" id="startBtn">Start Game</div>
     <div class="button" id="multBtn">Multiplayer</div>
+    <div class="button" id="leaderBtn">Leaderboard</div>
     <div class="button" id="instrBtn">Instructions</div>
   </div>
   <div class="instructions" id="instrPanel">
     <p>Rules: Basic Rock Paper Scissors... kinda. Each set has 3 options. Winning advances you to the next set and Losing decreases your level.</p>
     <div class="back-btn" id="backBtn">Back</div>
+  </div>
+  <div class="instructions" id="leaderPanel">
+    <h2>🏆 LEADERBOARD 🏆</h2>
+    <div id="leaderboardContent">Loading leaderboard...</div>
+    <div class="back-btn" id="leaderBackBtn">Back</div>
   </div>
 </div>
 
@@ -81,6 +89,7 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
   <div class="choices"></div>
   <div class="panel result"></div>
   <div class="scoreboard">Level: 1 | Player: 0 | AI: 0</div>
+
   <div class="new-set" id="newSet">NEW SET UNLOCKED!</div>
 </div>
 
@@ -95,22 +104,209 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
 const SUPABASE_URL='https://gwiveqgfbslonwmvtluv.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE';
 
-const startBtn=document.getElementById('startBtn'),multBtn=document.getElementById('multBtn'),instrBtn=document.getElementById('instrBtn'),backBtn=document.getElementById('backBtn'),multiBackBtn=document.getElementById('multiBackBtn'),createCodeBtn=document.getElementById('createCodeBtn'),joinCodeBtn=document.getElementById('joinCodeBtn'),joinCodeInput=document.getElementById('joinCodeInput'),multiName=document.getElementById('multiName'),multiStatus=document.getElementById('multiStatus'),codeDisplay=document.getElementById('codeDisplay');
+const startBtn=document.getElementById('startBtn'),multBtn=document.getElementById('multBtn'),instrBtn=document.getElementById('instrBtn'),backBtn=document.getElementById('backBtn'),multiBackBtn=document.getElementById('multiBackBtn'),createCodeBtn=document.getElementById('createCodeBtn'),joinCodeBtn=document.getElementById('joinCodeBtn'),joinCodeInput=document.getElementById('joinCodeInput'),multiName=document.getElementById('multiName'),multiStatus=document.getElementById('multiStatus'),codeDisplay=document.getElementById('codeDisplay'),leaderBtn=document.getElementById('leaderBtn'),leaderBackBtn=document.getElementById('leaderBackBtn'),leaderPanel=document.getElementById('leaderPanel'),leaderboardContent=document.getElementById('leaderboardContent');
 const menuContainer=document.getElementById('menuContainer'),instrPanel=document.getElementById('instrPanel'),multiContainer=document.getElementById('multiContainer'),gameContainer=document.getElementById('gameContainer'),choicesDiv=gameContainer.querySelector('.choices'),resultDiv=gameContainer.querySelector('.result'),scoreboard=gameContainer.querySelector('.scoreboard'),title=document.getElementById('title'),newSet=document.getElementById('newSet'),timerDiv=document.getElementById('timer'),youWonPanel=document.getElementById('youWonPanel'),playerNameInput=document.getElementById('playerName'),submitScoreBtn=document.getElementById('submitScore'),leaderboardDiv=document.getElementById('leaderboardDiv'),winTitle=document.getElementById('winTitle');
 
 let playerScore=0,aiScore=0,currentLevel=0,startTime,timerInterval,multiplayer=false,myPlayer='a',gameCode='',pollInterval=null;
+let playerHistory=[],lastPlayerChoice=null,repeatCount=0,lastRoundTime=0,spamDetected=false;
 const optionSets=[['🪨','📄','✂️'],['🦄','🌈','💩'],['🔥','💧','🌱'],['⚡','🍌','👽'],['🍕','🍔','🌭'],['🐙','🐳','🦖'],['🌞','🌜','⭐'],['🎩','🕶️','👑'],['🤖','👾','👻'],['💎','🪙','🧿'],['🥳','😱','🤯']];
 const emojiNames={'🪨':'Rock','📄':'Paper','✂️':'Scissors','🦄':'Unicorn','🌈':'Rainbow','💩':'Poop','🔥':'Fire','💧':'Water','🌱':'Plant','⚡':'Lightning','🍌':'Banana','👽':'Alien','🍕':'Pizza','🍔':'Burger','🌭':'Hotdog','🐙':'Octopus','🐳':'Whale','🦖':'Dino','🌞':'Sun','🌜':'Moon','⭐':'Star','🎩':'Hat','🕶️':'Sunglasses','👑':'Crown','🤖':'Robot','👾':'Monster','👻':'Ghost','💎':'Gem','🪙':'Coin','🧿':'Amulet','🥳':'Party','😱':'Scream','🤯':'Mindblown'};
 const rowRules=[{'🪨':['✂️'],'📄':['🪨'],'✂️':['📄']},{'🦄':['💩'],'🌈':['🦄'],'💩':['🌈']},{'🔥':['🌱'],'💧':['🔥'],'🌱':['💧']},{'⚡':['👽'],'🍌':['⚡'],'👽':['🍌']},{'🍕':['🌭'],'🍔':['🍕'],'🌭':['🍔']},{'🐙':['🦖'],'🐳':['🐙'],'🦖':['🐳']},{'🌞':['⭐'],'🌜':['🌞'],'⭐':['🌜']},{'🎩':['👑'],'🕶️':['🎩'],'👑':['🕶️']},{'🤖':['👻'],'👾':['🤖'],'👻':['👾']},{'💎':['🧿'],'🪙':['💎'],'🧿':['🪙']},{'🥳':['🤯'],'😱':['🥳'],'🤯':['😱']}];
 
-function updateChoices(){choicesDiv.innerHTML='';const rowDiv=document.createElement('div');rowDiv.classList.add('choice-row');optionSets[currentLevel].forEach(e=>{const div=document.createElement('div');div.classList.add('choice');div.textContent=e;div.setAttribute('data-name',emojiNames[e]);div.addEventListener('click',()=>playRound(e));rowDiv.appendChild(div)});choicesDiv.appendChild(rowDiv);}
-function computerChoice(){const row=optionSets[currentLevel];return row[Math.floor(Math.random()*row.length)];}
-function emojiBeats(player,ai){return rowRules[currentLevel][player].includes(ai);}
+
+class SmartAI {
+  constructor() {
+    this.choiceHistory = [];
+    this.patternCache = {};
+    this.lastPlayerChoice = null;
+    this.repeatCount = 0;
+    this.lastRoundTime = 0;
+    this.cooldownTime = 800;
+    
+
+    this.positionTally = {0: 0, 1: 0, 2: 0};
+    this.positionHistory = [];
+    this.currentOptions = [];
+  }
+
+
+  analyzePattern() {
+    if (this.choiceHistory.length < 2) return null;
+    
+
+    const transitions = {};
+    for (let i = 0; i < this.choiceHistory.length - 1; i++) {
+      const current = this.choiceHistory[i];
+      const next = this.choiceHistory[i + 1];
+      if (!transitions[current]) transitions[current] = {};
+      transitions[current][next] = (transitions[current][next] || 0) + 1;
+    }
+
+
+    const lastChoice = this.choiceHistory[this.choiceHistory.length - 1];
+    if (transitions[lastChoice]) {
+      const counts = transitions[lastChoice];
+      let predicted = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+      return predicted;
+    }
+    return null;
+  }
+
+
+  detectSpam(playerChoice) {
+    const now = Date.now();
+    const timeSinceLastRound = now - this.lastRoundTime;
+    
+
+    if (playerChoice === this.lastPlayerChoice) {
+      this.repeatCount++;
+    } else {
+      this.repeatCount = 0;
+    }
+
+
+    const isSpamming = this.repeatCount >= 2 || (timeSinceLastRound < this.cooldownTime && this.repeatCount >= 1);
+    
+    this.lastPlayerChoice = playerChoice;
+    this.lastRoundTime = now;
+    
+    return isSpamming;
+  }
+
+
+  getCounterMove(predictedChoice) {
+    const rules = rowRules[currentLevel];
+    for (const [winner, losers] of Object.entries(rules)) {
+      if (losers.includes(predictedChoice)) {
+        return winner;
+      }
+    }
+
+    return optionSets[currentLevel][Math.floor(Math.random() * 3)];
+  }
+
+
+  recordPosition(position) {
+    this.positionTally[position]++;
+    this.positionHistory.push(position);
+    
+
+    if (this.positionHistory.length > 20) {
+      this.positionHistory.shift();
+    }
+  }
+
+
+  getMostClickedPosition() {
+    let maxCount = 0;
+    let mostClicked = 1;
+    
+    for (const [position, count] of Object.entries(this.positionTally)) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostClicked = parseInt(position);
+      }
+    }
+    
+    return mostClicked;
+  }
+
+
+  predictFromPositionTally() {
+    const mostClickedPos = this.getMostClickedPosition();
+    
+
+    const totalClicks = this.positionTally[0] + this.positionTally[1] + this.positionTally[2];
+    if (totalClicks >= 3) {
+      return this.currentOptions[mostClickedPos];
+    }
+    
+    return null;
+  }
+
+
+  makeChoice(playerChoice, position) {
+
+    this.recordPosition(position);
+    
+    const isSpamming = this.detectSpam(playerChoice);
+    this.choiceHistory.push(playerChoice);
+    
+
+    if (this.choiceHistory.length > 10) {
+      this.choiceHistory.shift();
+    }
+
+
+    if (isSpamming) {
+      
+      const counter = this.getCounterMove(playerChoice);
+      return Math.random() < 0.9 ? counter : this.getRandomChoice();
+    }
+
+
+    const positionPrediction = this.predictFromPositionTally();
+    if (positionPrediction && Math.random() < 0.65) {
+      return this.getCounterMove(positionPrediction);
+    }
+
+
+    const predicted = this.analyzePattern();
+    if (predicted && Math.random() < 0.7) {
+      
+      return this.getCounterMove(predicted);
+    }
+
+
+    
+    return this.getRandomChoice();
+  }
+
+  getRandomChoice() {
+    return optionSets[currentLevel][Math.floor(Math.random() * 3)];
+  }
+
+  reset() {
+    this.choiceHistory = [];
+    this.patternCache = {};
+    this.lastPlayerChoice = null;
+    this.repeatCount = 0;
+    this.lastRoundTime = 0;
+    this.positionTally = {0: 0, 1: 0, 2: 0};
+    this.positionHistory = [];
+    this.currentOptions = [];
+    
+  }
+}
+
+const smartAI = new SmartAI();
+
+function updateChoices(){
+  choicesDiv.innerHTML='';
+  const rowDiv=document.createElement('div');
+  rowDiv.classList.add('choice-row');
+  
+
+  smartAI.currentOptions = optionSets[currentLevel];
+  
+  optionSets[currentLevel].forEach((e, index) => {
+    const div=document.createElement('div');
+    div.classList.add('choice');
+    div.textContent=e;
+    div.setAttribute('data-name',emojiNames[e]);
+    div.setAttribute('data-position', index);
+    div.addEventListener('click',()=>playRound(e, index));
+    rowDiv.appendChild(div);
+  });
+  choicesDiv.appendChild(rowDiv);
+}
+
 function createConfetti(){for(let i=0;i<50;i++){const c=document.createElement('div');c.classList.add('confetti-piece');c.style.left=Math.random()*window.innerWidth+'px';c.style.background=`hsl(${Math.random()*360},100%,50%)`;c.style.animationDuration=(Math.random()*2+1)+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),2000);}}
 function animateWin(){createConfetti();newSet.style.animation='new-set-anim 1.5s forwards';}
 function startTimer(){startTime=Date.now();timerInterval=setInterval(()=>{const elapsed=Math.floor((Date.now()-startTime)/1000);timerDiv.textContent=`Time: ${elapsed}s`;},1000);}
 function stopTimer(){clearInterval(timerInterval);}
 async function fetchLeaderboard(){try{const res=await fetch(`${SUPABASE_URL}/rest/v1/leaderboard?order=time.asc&limit=10`,{headers:{apikey:SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});const data=await res.json();leaderboardDiv.innerHTML=data.map((entry,i)=>`${i+1}. ${entry.name} - ${entry.time}s`).join('<br>');}catch(err){leaderboardDiv.textContent='Failed to load leaderboard.';}}
+async function fetchLeaderboardPanel(){try{const res=await fetch(`${SUPABASE_URL}/rest/v1/leaderboard?order=time.asc&limit=10`,{headers:{apikey:SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});const data=await res.json();leaderboardContent.innerHTML=data.map((entry,i)=>`${i+1}. ${entry.name} - ${entry.time}s`).join('<br>');}catch(err){leaderboardContent.textContent='Failed to load leaderboard.';}}
 async function submitScore(name,time){await fetch(`${SUPABASE_URL}/rest/v1/leaderboard`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({name,time})});await fetchLeaderboard();}
 async function getGame(code){const res=await fetch(`${SUPABASE_URL}/rest/v1/multigames?code=eq.${code}&select=*`,{headers:{apikey:SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});const data=await res.json();return data[0];}
 async function createGame(code,playerName){const res=await fetch(`${SUPABASE_URL}/rest/v1/multigames`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({code,player_a:playerName,player_b:'',choice_a:'',choice_b:'',status:'waiting',level:0,score_a:0,score_b:0})});return res.ok;}
@@ -119,12 +315,15 @@ async function updateChoice(code,player,choice){const game=await getGame(code);i
 async function resetRound(code,level,scoreA,scoreB){const game=await getGame(code);if(!game)return;await fetch(`${SUPABASE_URL}/rest/v1/multigames?id=eq.${game.id}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({choice_a:'',choice_b:'',level,score_a:scoreA,score_b:scoreB})});}
 async function pollGame(){if(!gameCode){clearInterval(pollInterval);return;}const game=await getGame(gameCode);if(!game){clearInterval(pollInterval);return;}if(game.status==='waiting'){multiStatus.textContent=`Waiting for opponent...`;codeDisplay.textContent=gameCode;codeDisplay.style.display='block';}else if(game.status==='playing'){if(!multiplayer){multiplayer=true;clearInterval(pollInterval);multiContainer.classList.remove('active');gameContainer.classList.add('active');title.textContent=`🎮 ${game.player_a} vs ${game.player_b} 🎮`;currentLevel=game.level;updateChoices();startTimer();startMultiplayerPoll();}}}
 function startMultiplayerPoll(){pollInterval=setInterval(async()=>{const game=await getGame(gameCode);if(!game){clearInterval(pollInterval);return;}const myChoice=myPlayer==='a'?game.choice_a:game.choice_b;const oppChoice=myPlayer==='a'?game.choice_b:game.choice_a;if(myChoice&&!oppChoice){resultDiv.textContent='Waiting for opponent...';}if(myChoice&&oppChoice){let oppName=myPlayer==='a'?game.player_b:game.player_a;let text=`${oppName} chose ${oppChoice} (${emojiNames[oppChoice]})! `;let roundWinner='';if(myChoice===oppChoice){text+="It's a tie! 🤝";roundWinner='tie';}else if(emojiBeats(myChoice,oppChoice)){text+="You win this round! 🎉";roundWinner='me';if(myPlayer==='a'){game.score_a++;}else{game.score_b++;}}else{text+="Opponent wins this round! 😭";roundWinner='opp';if(myPlayer==='a'){game.score_b++;}else{game.score_a++;}}if(game.level<optionSets.length-1){game.level++;animateWin();resultDiv.innerHTML=text+'<br>Next Set! ➡️';scoreboard.textContent=`Set: ${game.level+1}/${optionSets.length} | ${game.player_a}: ${game.score_a} | ${game.player_b}: ${game.score_b}`;currentLevel=game.level;playerScore=myPlayer==='a'?game.score_a:game.score_b;aiScore=myPlayer==='a'?game.score_b:game.score_a;setTimeout(async()=>{await resetRound(gameCode,game.level,game.score_a,game.score_b);updateChoices();setTimeout(()=>{newSet.style.animation='none';},1500);},1500);}else{clearInterval(pollInterval);stopTimer();scoreboard.textContent=`Final Score | ${game.player_a}: ${game.score_a} | ${game.player_b}: ${game.score_b}`;let finalResult='';if(game.score_a>game.score_b){finalResult=game.player_a+' wins the match! 🏆';}else if(game.score_b>game.score_a){finalResult=game.player_b+' wins the match! 🏆';}else{finalResult="It's a tie! 🤝";}resultDiv.innerHTML=text+'<br><br>'+finalResult;if((myPlayer==='a'&&game.score_a>game.score_b)||(myPlayer==='b'&&game.score_b>game.score_a)){winTitle.textContent='You Won! 🏆';}else if((myPlayer==='a'&&game.score_a<game.score_b)||(myPlayer==='b'&&game.score_b<game.score_a)){winTitle.textContent='You Lost! 😢';}else{winTitle.textContent='It\'s a Tie! 🤝';}youWonPanel.style.display='flex';fetchLeaderboard();return;}}},500);}
-function playRound(player){if(multiplayer){updateChoice(gameCode,myPlayer,player);return;}const ai=computerChoice();let text=`AI chose ${ai} (${emojiNames[ai]})! `;let advanced=false;if(player===ai){text+="It's a tie! 🤝";}else if(emojiBeats(player,ai)){text+="You win! 🎉";playerScore++;if(currentLevel<optionSets.length-1){currentLevel++;advanced=true;animateWin();} else {stopTimer();youWonPanel.style.display='flex';fetchLeaderboard();return;}}else{text+="You lose! 😭";aiScore++;if(currentLevel>0) currentLevel--;}resultDiv.innerHTML=text;scoreboard.textContent=`Level: ${currentLevel+1} | Player: ${playerScore} | AI: ${aiScore}`;updateChoices();if(advanced){setTimeout(()=>{newSet.style.animation='none';},1500);}}
+function emojiBeats(player,ai){return rowRules[currentLevel][player].includes(ai);}
+function playRound(player, position){if(multiplayer){updateChoice(gameCode,myPlayer,player);return;}const ai=smartAI.makeChoice(player, position);let text=`AI chose ${ai} (${emojiNames[ai]})! `;let advanced=false;if(player===ai){text+="It's a tie! 🤝";}else if(emojiBeats(player,ai)){text+="You win! 🎉";playerScore++;if(currentLevel<optionSets.length-1){currentLevel++;advanced=true;animateWin();} else {stopTimer();youWonPanel.style.display='flex';fetchLeaderboard();return;}}else{text+="You lose! 😭";aiScore++;if(currentLevel>0) currentLevel--;}resultDiv.innerHTML=text;scoreboard.textContent=`Level: ${currentLevel+1} | Player: ${playerScore} | AI: ${aiScore}`;updateChoices();if(advanced){setTimeout(()=>{newSet.style.animation='none';},1500);}}
 
-startBtn.addEventListener('click',()=>{menuContainer.classList.remove('active');instrPanel.classList.remove('active');gameContainer.classList.add('active');playerScore=0;aiScore=0;currentLevel=0;multiplayer=false;updateChoices();startTimer();});
+startBtn.addEventListener('click',()=>{menuContainer.classList.remove('active');instrPanel.classList.remove('active');gameContainer.classList.add('active');playerScore=0;aiScore=0;currentLevel=0;multiplayer=false;smartAI.reset();updateChoices();startTimer();});
 instrBtn.addEventListener('click',()=>{instrPanel.classList.add('active');});
 backBtn.addEventListener('click',()=>{instrPanel.classList.remove('active');});
 multBtn.addEventListener('click',()=>{menuContainer.classList.remove('active');multiContainer.classList.add('active');});
+leaderBtn.addEventListener('click',()=>{leaderPanel.classList.add('active');fetchLeaderboardPanel();});
+leaderBackBtn.addEventListener('click',()=>{leaderPanel.classList.remove('active');});
 multiBackBtn.addEventListener('click',()=>{if(pollInterval)clearInterval(pollInterval);multiContainer.classList.remove('active');menuContainer.classList.add('active');codeDisplay.style.display='none';codeDisplay.textContent='';});
 createCodeBtn.addEventListener('click',async()=>{const name=multiName.value.trim();if(!name){multiStatus.textContent='Please enter your name.';return;}const code=Math.random().toString(36).substring(2,6).toUpperCase();gameCode=code;myPlayer='a';await createGame(code,name);multiStatus.textContent='Game created! Share code with friend:';codeDisplay.textContent=code;codeDisplay.style.display='block';pollInterval=setInterval(pollGame,1000);});
 joinCodeBtn.addEventListener('click',async()=>{const name=multiName.value.trim();const code=joinCodeInput.value.trim().toUpperCase();if(!name||!code){multiStatus.textContent='Please enter your name and code.';return;}const success=await joinGame(code,name);if(success){gameCode=code;myPlayer='b';multiStatus.textContent='Joined game! Waiting for host to start...';pollInterval=setInterval(pollGame,1000);}else{multiStatus.textContent='Invalid code or game already started.';}});
