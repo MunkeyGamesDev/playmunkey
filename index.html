@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="style.css">
 
   <style>
-    /* Make body full height and use flex layout */
     html, body {
       height: 100%;
       margin: 0;
@@ -33,7 +32,7 @@
     }
 
     main {
-      flex: 1; /* Take up all available space so footer stays at bottom */
+      flex: 1;
     }
 
     @keyframes moveCode {
@@ -87,7 +86,7 @@
       pointer-events: none;
       user-select: none;
       animation: fly 0.8s forwards;
-      z-index: 2; /* make sure particles appear above footer */
+      z-index: 2;
     }
 
     @keyframes fly {
@@ -102,6 +101,12 @@
       background-color: #0d0f14;
       position: relative;
       z-index: 1;
+    }
+
+    #visitor-counter {
+      margin-top: 3px;
+      font-weight: bold;
+      color: #0f0;
     }
   </style>
 </head>
@@ -119,10 +124,11 @@
 
 <footer>
   © 2026 MunkeyGamesStudio
+  <div id="visitor-counter">Total Visitors: <span id="visitor-count">0</span></div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.35.0/dist/supabase.min.js"></script>
 <script>
-  // 🐵 Wobble
   const monkey = document.querySelector('.emoji-wobble');
   monkey.addEventListener('click', () => {
     monkey.classList.remove('wobble'); 
@@ -130,29 +136,36 @@
     monkey.classList.add('wobble');
   });
 
-  // Binary explosion
   document.addEventListener('click', (e) => {
     if (e.target.classList.contains('emoji-wobble')) return;
-
     const particlesCount = 20;
     for (let i = 0; i < particlesCount; i++) {
       const particle = document.createElement('span');
       particle.classList.add('binary-particle');
       particle.textContent = Math.random() > 0.5 ? '0' : '1';
-
       particle.style.left = e.pageX + 'px';
       particle.style.top = e.pageY + 'px';
-
       const dx = (Math.random() - 0.5) * 200 + 'px';
       const dy = (Math.random() - 0.5) * 200 + 'px';
       particle.style.setProperty('--dx', dx);
       particle.style.setProperty('--dy', dy);
-
       document.body.appendChild(particle);
-
       particle.addEventListener('animationend', () => particle.remove());
     }
   });
+
+  const SUPABASE_URL = 'https://gwiveqgfbslonwmvtluv.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const visitorCountEl = document.getElementById('visitor-count');
+
+  async function updateVisitorCount() {
+    const { data, error } = await supabase.from('visitors').select('total').eq('id', 1).single();
+    if (!error && data) visitorCountEl.textContent = data.total;
+    await supabase.from('visitors').update({ total: data.total + 1 }).eq('id', 1);
+  }
+
+  updateVisitorCount();
 </script>
 
 <script src="loader.js"></script>
