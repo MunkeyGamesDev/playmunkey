@@ -17,6 +17,12 @@
       "description": "Its just like the original!",
       "file": "infiniterps.html",
       "image": "infiniterps.png"
+    },
+    {
+      "title": "Email Simulator",
+      "description": "Check You Emails!",
+      "file": "emailsim.html",
+      "image": "emailsim.png"
     }
   ]
 }
