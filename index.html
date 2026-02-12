@@ -19,6 +19,8 @@ h1 span.emoji-wobble.wobble{animation:wobble .6s ease}
 @keyframes fly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.5)}}
 footer{text-align:center;padding:5px 0;font-size:12px;background-color:#0d0f14;position:relative;z-index:1}
 #visitor-counter{margin-top:3px;font-weight:bold;color:#0f0}
+#bmc-button{position:fixed;bottom:20px;right:20px;background:#FFDD00;color:#000;font-weight:bold;text-decoration:none;padding:12px 18px;border-radius:8px;font-family:"Courier New",monospace;box-shadow:0 4px 6px rgba(0,0,0,0.3);z-index:10;transition:transform .2s}
+#bmc-button:hover{transform:scale(1.1) rotate(-5deg)}
 </style>
 </head>
 <body>
@@ -38,11 +40,12 @@ footer{text-align:center;padding:5px 0;font-size:12px;background-color:#0d0f14;p
 <div id="visitor-counter">Total Visitors: <span id="visitor-count">0</span></div>
 </footer>
 
+<a id="bmc-button" href="/support" target="_blank">☕ Support</a>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const monkey=document.querySelector('.emoji-wobble')
 monkey.addEventListener('click',()=>{monkey.classList.remove('wobble');void monkey.offsetWidth;monkey.classList.add('wobble')})
-
 document.addEventListener('click',e=>{
 if(e.target.classList.contains('emoji-wobble'))return
 for(let i=0;i<20;i++){
@@ -57,12 +60,10 @@ document.body.appendChild(particle)
 particle.addEventListener('animationend',()=>particle.remove())
 }
 })
-
 const SUPABASE_URL='https://gwiveqgfbslonwmvtluv.supabase.co'
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE'
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 const visitorCountEl=document.getElementById('visitor-count')
-
 async function updateVisitorCount(){
 let{data,error}=await db.from('visitors').select('*').limit(1).maybeSingle()
 if(!data){
@@ -73,7 +74,6 @@ const newTotal=data.total+1
 await db.from('visitors').update({total:newTotal}).eq('id',data.id)
 visitorCountEl.textContent=newTotal
 }
-
 updateVisitorCount()
 </script>
 
