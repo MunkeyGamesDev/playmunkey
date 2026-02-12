@@ -11,6 +11,12 @@
       "description": "Click to check if the world has ended…",
       "file": "HasTheWorldEnded.html",
       "image": "HasTheWorldEnded.png"
+    },
+    {
+      "title": "Infinite Rock Paper Scissors",
+      "description": "Its just like the original!",
+      "file": "infiniterps.html",
+      "image": "infiniterps.png"
     }
   ]
 }
