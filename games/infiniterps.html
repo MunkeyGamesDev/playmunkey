@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Rock Paper Scissors</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+body{margin:0;padding:0;font-family:'Press Start 2P',cursive;background:#91b4c3;display:flex;justify-content:center;align-items:center;height:100vh;overflow:hidden}
+.container{width:90%;max-width:700px;height:90%;background:#c0c0c0;border:4px solid #000;border-radius:12px;box-shadow:inset -4px -4px #999,inset 4px 4px #fff;display:flex;flex-direction:column;align-items:center;padding:15px;box-sizing:border-box;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition: all 0.5s;opacity:0;pointer-events:none}
+.container.active{opacity:1;pointer-events:auto}
+h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-pulse 2s infinite;color:#fff;text-shadow:2px 2px 0 #000,4px 4px 0 #333}
+@keyframes title-pulse{0%{color:#fff;text-shadow:2px 2px 0 #000,4px 4px 0 #333}25%{color:#ff0;text-shadow:2px 2px 0 #000,4px 4px 0 #666}50%{color:#f0f;text-shadow:2px 2px 0 #000,4px 4px 0 #999}75%{color:#0ff;text-shadow:2px 2px 0 #000,4px 4px 0 #666}100%{color:#fff;text-shadow:2px 2px 0 #000,4px 4px 0 #333}}
+.button{padding:15px 25px;margin:10px;font-size:1em;background:#e0e0e0;border:2px solid #000;border-radius:8px;cursor:pointer;transition:all 0.2s;text-align:center}
+.button:hover{transform:scale(1.1);background:#fff}
+.choices{flex:1;display:flex;justify-content:center;align-items:center}
+.choice-row{display:flex;gap:15px}
+.choice{font-size:3em;background:#e0e0e0;border:2px solid #000;padding:15px;border-radius:8px;cursor:pointer;position:relative;transition:transform 0.2s}
+.choice:hover{transform:scale(1.5) rotate(5deg)}
+.choice:hover::after{content:attr(data-name);position:absolute;top:-2.5em;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:0.6em;padding:2px 5px;border-radius:3px;white-space:nowrap}
+.panel{width:100%;background:#c0c0c0;border:2px solid #000;padding:10px;margin-top:10px;box-sizing:border-box;min-height:60px;font-size:0.7em;color:#000;text-align:center;transition:all 0.3s}
+.scoreboard{font-size:0.7em;margin-top:5px;padding:5px;background:#e0e0e0;border:2px solid #000;width:100%;text-align:center;position:relative}
+.confetti-piece{position:absolute;width:10px;height:10px;background:red;opacity:0.8;pointer-events:none;animation:confetti-fall 2s linear forwards}
+@keyframes confetti-fall{0%{transform:translateY(-10px) rotate(0deg)}100%{transform:translateY(100vh) rotate(720deg)}}
+.new-set{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-size:3em;color:#ff0;text-shadow:2px 2px 0 #000,4px 4px 0 #333;pointer-events:none;animation:none;z-index:9999;text-align:center}
+@keyframes new-set-anim{0%{transform:translate(-50%,-50%) scale(0);opacity:0}30%{transform:translate(-50%,-50%) scale(1.5);opacity:1}70%{transform:translate(-50%,-50%) scale(1.2);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+.menu{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;width:100%;text-align:center;}
+.menu h1{font-size:2em;margin-bottom:20px}
+.instructions{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:0.8em;}
+.instructions.active{display:flex;}
+.back-btn{margin-top:20px;padding:10px 20px;border:2px solid #000;border-radius:8px;background:#e0e0e0;cursor:pointer;transition:all 0.2s}
+.back-btn:hover{background:#fff}
+.timer{position:absolute;top:10px;left:10px;font-size:0.8em;color:#fff;text-shadow:1px 1px 0 #000}
+.you-won{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#c0c0c0;border:4px solid #000;padding:20px;border-radius:12px;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1000}
+.you-won input{padding:10px;font-size:1em;margin:10px;width:150px;text-align:center}
+.you-won button{padding:10px 20px;font-size:1em;cursor:pointer;margin:5px}
+.leaderboard{margin-top:10px;font-size:0.7em;text-align:center;width:100%;}
+</style>
+<script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
+</head>
+<body>
+
+<div class="container active" id="menuContainer">
+  <div class="menu">
+    <h1>🎮 Infinite RPS 🎮</h1>
+    <div class="button" id="startBtn">Start Game</div>
+    <div class="button" id="multBtn">Multiplayer</div>
+    <div class="button" id="instrBtn">Instructions</div>
+  </div>
+  <div class="instructions" id="instrPanel">
+    <p>Rules: Basic Rock Paper Scissors... kinda. Each set has 3 options. Winning advances you to the next set and Losing decreases your level.</p>
+    <div class="back-btn" id="backBtn">Back</div>
+  </div>
+</div>
+
+<div class="container" id="multiContainer">
+  <h1>🎮 Multiplayer 🎮</h1>
+  <input type="text" id="multiName" placeholder="Enter Your Name" style="padding:10px;font-size:1em;margin:10px;width:200px;text-align:center;">
+  <div class="button" id="createCodeBtn">Create Game Code</div>
+  <input type="text" id="joinCodeInput" placeholder="Enter Game Code" style="padding:10px;font-size:1em;margin:10px;width:200px;text-align:center;">
+  <div class="button" id="joinCodeBtn">Join Game</div>
+  <div class="back-btn" id="multiBackBtn">Back</div>
+  <div class="panel" id="multiStatus">Waiting for opponent...</div>
+</div>
+
+<div class="container" id="gameContainer">
+  <h1 id="title">🎮 Infinite RPS 🎮</h1>
+  <div class="timer" id="timer">Time: 0s</div>
+  <div class="choices"></div>
+  <div class="panel result"></div>
+  <div class="scoreboard">Level: 1 | Player: 0 | AI: 0</div>
+  <div class="new-set" id="newSet">NEW SET UNLOCKED!</div>
+</div>
+
+<div class="you-won" id="youWonPanel">
+  <h1>You Won! 🏆</h1>
+  <input type="text" id="playerName" placeholder="Enter Name"/>
+  <button id="submitScore">Submit Score</button>
+  <div class="leaderboard" id="leaderboardDiv">Loading leaderboard...</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://gwiveqgfbslonwmvtluv.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE';
+
+const startBtn=document.getElementById('startBtn'),multBtn=document.getElementById('multBtn'),instrBtn=document.getElementById('instrBtn'),backBtn=document.getElementById('backBtn'),multiBackBtn=document.getElementById('multiBackBtn'),createCodeBtn=document.getElementById('createCodeBtn'),joinCodeBtn=document.getElementById('joinCodeBtn'),joinCodeInput=document.getElementById('joinCodeInput'),multiName=document.getElementById('multiName'),multiStatus=document.getElementById('multiStatus');
+const menuContainer=document.getElementById('menuContainer'),instrPanel=document.getElementById('instrPanel'),multiContainer=document.getElementById('multiContainer'),gameContainer=document.getElementById('gameContainer'),choicesDiv=gameContainer.querySelector('.choices'),resultDiv=gameContainer.querySelector('.result'),scoreboard=gameContainer.querySelector('.scoreboard'),title=document.getElementById('title'),newSet=document.getElementById('newSet'),timerDiv=document.getElementById('timer'),youWonPanel=document.getElementById('youWonPanel'),playerNameInput=document.getElementById('playerName'),submitScoreBtn=document.getElementById('submitScore'),leaderboardDiv=document.getElementById('leaderboardDiv');
+
+let playerScore=0,aiScore=0,currentLevel=0,startTime,timerInterval,multiplayer=false,myPlayer='a',gameCode='',pollInterval=null;
+const optionSets=[['🪨','📄','✂️'],['🦄','🌈','💩'],['🔥','💧','🌱'],['⚡','🍌','👽'],['🍕','🍔','🌭'],['🐙','🐳','🦖'],['🌞','🌜','⭐'],['🎩','🕶️','👑'],['🤖','👾','👻'],['💎','🪙','🧿'],['🥳','😱','🤯']];
+const emojiNames={'🪨':'Rock','📄':'Paper','✂️':'Scissors','🦄':'Unicorn','🌈':'Rainbow','💩':'Poop','🔥':'Fire','💧':'Water','🌱':'Plant','⚡':'Lightning','🍌':'Banana','👽':'Alien','🍕':'Pizza','🍔':'Burger','🌭':'Hotdog','🐙':'Octopus','🐳':'Whale','🦖':'Dino','🌞':'Sun','🌜':'Moon','⭐':'Star','🎩':'Hat','🕶️':'Sunglasses','👑':'Crown','🤖':'Robot','👾':'Monster','👻':'Ghost','💎':'Gem','🪙':'Coin','🧿':'Amulet','🥳':'Party','😱':'Scream','🤯':'Mindblown'};
+const rowRules=[{'🪨':['✂️'],'📄':['🪨'],'✂️':['📄']},{'🦄':['💩'],'🌈':['🦄'],'💩':['🌈']},{'🔥':['🌱'],'💧':['🔥'],'🌱':['💧']},{'⚡':['👽'],'🍌':['⚡'],'👽':['🍌']},{'🍕':['🌭'],'🍔':['🍕'],'🌭':['🍔']},{'🐙':['🦖'],'🐳':['🐙'],'🦖':['🐳']},{'🌞':['⭐'],'🌜':['🌞'],'⭐':['🌜']},{'🎩':['👑'],'🕶️':['🎩'],'👑':['🕶️']},{'🤖':['👻'],'👾':['🤖'],'👻':['👾']},{'💎':['🧿'],'🪙':['💎'],'🧿':['🪙']},{'🥳':['🤯'],'😱':['🥳'],'🤯':['😱']}];
+
+function updateChoices(){choicesDiv.innerHTML='';const rowDiv=document.createElement('div');rowDiv.classList.add('choice-row');optionSets[currentLevel].forEach(e=>{const div=document.createElement('div');div.classList.add('choice');div.textContent=e;div.setAttribute('data-name',emojiNames[e]);div.addEventListener('click',()=>playRound(e));rowDiv.appendChild(div)});choicesDiv.appendChild(rowDiv);}
+function computerChoice(){const row=optionSets[currentLevel];return row[Math.floor(Math.random()*row.length)];}
+function emojiBeats(player,ai){return rowRules[currentLevel][player].includes(ai);}
+function createConfetti(){for(let i=0;i<50;i++){const c=document.createElement('div');c.classList.add('confetti-piece');c.style.left=Math.random()*window.innerWidth+'px';c.style.background=`hsl(${Math.random()*360},100%,50%)`;c.style.animationDuration=(Math.random()*2+1)+'s';document.body.appendChild(c);setTimeout(()=>c.remove(),2000);}}
+function animateWin(){createConfetti();newSet.style.animation='new-set-anim 1.5s forwards';}
+function startTimer(){startTime=Date.now();timerInterval=setInterval(()=>{const elapsed=Math.floor((Date.now()-startTime)/1000);timerDiv.textContent=`Time: ${elapsed}s`;},1000);}
+function stopTimer(){clearInterval(timerInterval);}
+async function fetchLeaderboard(){try{const res=await fetch(`${SUPABASE_URL}/rest/v1/leaderboard?order=time.asc&limit=10`,{headers:{apikey:SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});const data=await res.json();leaderboardDiv.innerHTML=data.map((entry,i)=>`${i+1}. ${entry.name} - ${entry.time}s`).join('<br>');}catch(err){leaderboardDiv.textContent='Failed to load leaderboard.';}}
+async function submitScore(name,time){await fetch(`${SUPABASE_URL}/rest/v1/leaderboard`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({name,time})});await fetchLeaderboard();}
+async function getGame(code){const res=await fetch(`${SUPABASE_URL}/rest/v1/multigames?code=eq.${code}&select=*`,{headers:{apikey:SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}});const data=await res.json();return data[0];}
+async function createGame(code,playerName){const res=await fetch(`${SUPABASE_URL}/rest/v1/multigames`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({code,player_a:playerName,player_b:'',choice_a:'',choice_b:'',status:'waiting',level:0,score_a:0,score_b:0})});return res.ok;}
+async function joinGame(code,playerName){const game=await getGame(code);if(!game||game.status!=='waiting'){return false;}const res=await fetch(`${SUPABASE_URL}/rest/v1/multigames?id=eq.${game.id}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({player_b:playerName,status:'playing'})});return res.ok;}
+async function updateChoice(code,player,choice){const game=await getGame(code);if(!game)return;const field=player==='a'?'choice_a':'choice_b';const scoreField=player==='a'?'score_a':'score_b';await fetch(`${SUPABASE_URL}/rest/v1/multigames?id=eq.${game.id}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({[field]:choice})});}
+async function resetRound(code,level,scoreA,scoreB){const game=await getGame(code);if(!game)return;await fetch(`${SUPABASE_URL}/rest/v1/multigames?id=eq.${game.id}`,{method:'PATCH',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},body:JSON.stringify({choice_a:'',choice_b:'',level,score_a:scoreA,score_b:scoreB})});}
+async function pollGame(){if(!gameCode){clearInterval(pollInterval);return;}const game=await getGame(gameCode);if(!game){clearInterval(pollInterval);return;}if(game.status==='waiting'){multiStatus.textContent=`Waiting for opponent... Code: ${gameCode}`;}else if(game.status==='playing'){if(!multiplayer){multiplayer=true;clearInterval(pollInterval);multiContainer.classList.remove('active');gameContainer.classList.add('active');title.textContent=`🎮 ${game.player_a} vs ${game.player_b} 🎮`;currentLevel=game.level;updateChoices();startTimer();startMultiplayerPoll();}}}function startMultiplayerPoll(){pollInterval=setInterval(async()=>{const game=await getGame(gameCode);if(!game){clearInterval(pollInterval);return;}const myChoice=myPlayer==='a'?game.choice_a:game.choice_b;const oppChoice=myPlayer==='a'?game.choice_b:game.choice_a;if(myChoice&&!oppChoice){resultDiv.textContent='Waiting for opponent...';}if(myChoice&&oppChoice){let oppName=myPlayer==='a'?game.player_b:game.player_a;let text=`${oppName} chose ${oppChoice} (${emojiNames[oppChoice]})! `;let advanced=false;if(myChoice===oppChoice){text+="It's a tie! 🤝";}else if(emojiBeats(myChoice,oppChoice)){text+="You win! 🎉";if(myPlayer==='a'){game.score_a++;}else{game.score_b++;}if(game.level<optionSets.length-1){game.level++;advanced=true;animateWin();}else{clearInterval(pollInterval);stopTimer();youWonPanel.style.display='flex';fetchLeaderboard();return;}}else{text+="You lose! 😭";if(myPlayer==='a'){game.score_b++;}else{game.score_a++;}if(game.level>0)game.level--;}resultDiv.innerHTML=text;scoreboard.textContent=`Level: ${game.level+1} | ${game.player_a}: ${game.score_a} | ${game.player_b}: ${game.score_b}`;currentLevel=game.level;playerScore=myPlayer==='a'?game.score_a:game.score_b;aiScore=myPlayer==='a'?game.score_b:game.score_a;setTimeout(async()=>{await resetRound(gameCode,game.level,game.score_a,game.score_b);updateChoices();if(advanced){setTimeout(()=>{newSet.style.animation='none';},1500);}},1500);}},500);}
+function playRound(player){if(multiplayer){updateChoice(gameCode,myPlayer,player);return;}const ai=computerChoice();let text=`AI chose ${ai} (${emojiNames[ai]})! `;let advanced=false;if(player===ai){text+="It's a tie! 🤝";}else if(emojiBeats(player,ai)){text+="You win! 🎉";playerScore++;if(currentLevel<optionSets.length-1){currentLevel++;advanced=true;animateWin();} else {stopTimer();youWonPanel.style.display='flex';fetchLeaderboard();return;}}else{text+="You lose! 😭";aiScore++;if(currentLevel>0) currentLevel--;}resultDiv.innerHTML=text;scoreboard.textContent=`Level: ${currentLevel+1} | Player: ${playerScore} | AI: ${aiScore}`;updateChoices();if(advanced){setTimeout(()=>{newSet.style.animation='none';},1500);}}
+
+startBtn.addEventListener('click',()=>{menuContainer.classList.remove('active');instrPanel.classList.remove('active');gameContainer.classList.add('active');playerScore=0;aiScore=0;currentLevel=0;multiplayer=false;updateChoices();startTimer();});
+instrBtn.addEventListener('click',()=>{instrPanel.classList.add('active');});
+backBtn.addEventListener('click',()=>{instrPanel.classList.remove('active');});
+multBtn.addEventListener('click',()=>{menuContainer.classList.remove('active');multiContainer.classList.add('active');});
+multiBackBtn.addEventListener('click',()=>{if(pollInterval)clearInterval(pollInterval);multiContainer.classList.remove('active');menuContainer.classList.add('active');});
+createCodeBtn.addEventListener('click',async()=>{const name=multiName.value.trim();if(!name){multiStatus.textContent='Please enter your name.';return;}const code=Math.random().toString(36).substring(2,6).toUpperCase();gameCode=code;myPlayer='a';await createGame(code,name);multiStatus.textContent=`Game created! Code: ${code}. Waiting for opponent...`;pollInterval=setInterval(pollGame,1000);});
+joinCodeBtn.addEventListener('click',async()=>{const name=multiName.value.trim();const code=joinCodeInput.value.trim().toUpperCase();if(!name||!code){multiStatus.textContent='Please enter your name and code.';return;}const success=await joinGame(code,name);if(success){gameCode=code;myPlayer='b';multiStatus.textContent=`Joined game! Code: ${code}. Waiting to start...`;pollInterval=setInterval(pollGame,1000);}else{multiStatus.textContent='Invalid code or game already started.';}});
+submitScoreBtn.addEventListener('click',()=>{const name=playerNameInput.value.trim()||'Anonymous';const elapsed=Math.floor((Date.now()-startTime)/1000);submitScore(name,elapsed);youWonPanel.style.display='none';menuContainer.classList.add('active');playerNameInput.value='';});
+</script>
+</body>
+</html>
