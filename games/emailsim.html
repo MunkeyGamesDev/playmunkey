@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inbox (5,000) - Wemail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Google Sans', Roboto, Arial, sans-serif;
+            background-color: #f6f8fc;
+            overflow-x: hidden;
+        }
+
+        /* Top Header */
+        .gmail-header {
+            background-color: #fff;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid #dadce0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hamburger {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .hamburger:hover {
+            background-color: #f1f3f4;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            color: #5f6368;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 48px;
+            background-color: #eaf1fb;
+            border: none;
+            border-radius: 8px;
+            padding: 0 56px 0 56px;
+            font-size: 16px;
+            outline: none;
+            transition: background-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+            background-color: #fff;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #5f6368;
+        }
+
+        .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #5f6368;
+            position: relative;
+        }
+
+        .icon-button:hover {
+            background-color: #f1f3f4;
+        }
+
+        .profile-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        /* Dropdown Menus */
+        .dropdown-menu {
+            position: absolute;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            padding: 8px 0;
+            min-width: 200px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.2s;
+            font-size: 14px;
+            color: #202124;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f3f4;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: #dadce0;
+            margin: 8px 0;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 64px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 256px;
+            background-color: #fff;
+            padding: 8px;
+            border-right: 1px solid #dadce0;
+            overflow-y: auto;
+            transition: all 0.3s;
+        }
+
+        .sidebar.collapsed {
+            width: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .compose-button {
+            background-color: #c2e7ff;
+            border: none;
+            border-radius: 16px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            transition: box-shadow 0.2s, background-color 0.2s;
+            width: 100%;
+        }
+
+        .compose-button:hover {
+            box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+            background-color: #b3dbff;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 20px;
+            border-radius: 0 16px 16px 0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #202124;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            position: relative;
+        }
+
+        .nav-item:hover {
+            background-color: #f1f3f4;
+        }
+
+        .nav-item.active {
+            background-color: #d3e3fd;
+        }
+
+        .nav-item .count {
+            margin-left: auto;
+            font-weight: 700;
+            color: #202124;
+        }
+
+        /* Email List */
+        .email-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+        }
+
+        .toolbar {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            border-bottom: 1px solid #dadce0;
+            gap: 12px;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            border: 2px solid #5f6368;
+            border-radius: 2px;
+            appearance: none;
+            position: relative;
+        }
+
+        .checkbox:checked {
+            background-color: #1a73e8;
+            border-color: #1a73e8;
+        }
+
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            top: -2px;
+            left: 2px;
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 32px;
+            background-color: #dadce0;
+        }
+
+        .toolbar-text {
+            color: #5f6368;
+            font-size: 14px;
+            margin-left: auto;
+        }
+
+        .email-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .email-row {
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            height: 48px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+            position: relative;
+        }
+
+        .email-row:hover {
+            box-shadow: inset 1px 0 0 #dadce0, inset -1px 0 0 #dadce0, 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+            z-index: 1;
+        }
+
+        .email-row.unread {
+            background-color: #fff;
+            font-weight: 700;
+        }
+
+        .email-row.read {
+            background-color: #f8f9fa;
+            font-weight: 400;
+        }
+
+        .email-checkbox {
+            width: 18px;
+            height: 18px;
+            margin-right: 16px;
+            cursor: pointer;
+            border: 2px solid #5f6368;
+            border-radius: 2px;
+            appearance: none;
+            position: relative;
+        }
+
+        .email-checkbox:checked {
+            background-color: #1a73e8;
+            border-color: #1a73e8;
+        }
+
+        .email-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            top: -2px;
+            left: 2px;
+        }
+
+        .star {
+            margin-right: 16px;
+            cursor: pointer;
+            color: #5f6368;
+            transition: color 0.2s;
+        }
+
+        .star:hover {
+            color: #fbbc04;
+        }
+
+        .star.starred {
+            color: #fbbc04;
+        }
+
+        .email-sender {
+            width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            color: #202124;
+        }
+
+        .email-subject {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            font-size: 14px;
+            color: #202124;
+        }
+
+        .email-preview {
+            color: #5f6368;
+            margin-left: 4px;
+        }
+
+        .email-time {
+            width: 80px;
+            text-align: right;
+            font-size: 12px;
+            color: #5f6368;
+            white-space: nowrap;
+        }
+
+        /* Compose Window */
+        .compose-window {
+            position: fixed;
+            bottom: 0;
+            right: 20px;
+            width: 500px;
+            height: 550px;
+            background: white;
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            display: none;
+            flex-direction: column;
+            z-index: 200;
+        }
+
+        .compose-window.show {
+            display: flex;
+        }
+
+        .compose-header {
+            background-color: #404040;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .compose-header h3 {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .compose-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .compose-controls button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .compose-controls button:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .compose-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .compose-field {
+            border-bottom: 1px solid #dadce0;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compose-field label {
+            color: #5f6368;
+            font-size: 14px;
+            width: 60px;
+        }
+
+        .compose-field input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .compose-message {
+            flex: 1;
+            margin-top: 16px;
+        }
+
+        .compose-message textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .compose-footer {
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .send-button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .send-button:hover {
+            background-color: #1765cc;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            right: -400px;
+            top: 64px;
+            width: 400px;
+            height: calc(100vh - 64px);
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+            transition: right 0.3s;
+            z-index: 150;
+            overflow-y: auto;
+        }
+
+        .settings-panel.show {
+            right: 0;
+        }
+
+        .settings-header {
+            padding: 20px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .settings-header h2 {
+            font-size: 20px;
+            color: #202124;
+        }
+
+        .settings-section {
+            padding: 20px;
+            border-bottom: 1px solid #dadce0;
+        }
+
+        .settings-section h3 {
+            font-size: 16px;
+            color: #202124;
+            margin-bottom: 16px;
+        }
+
+        .settings-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+        }
+
+        .settings-option label {
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .toggle-switch {
+            width: 40px;
+            height: 20px;
+            background-color: #dadce0;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .toggle-switch.active {
+            background-color: #1a73e8;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        /* Profile Menu */
+        .profile-menu {
+            position: absolute;
+            right: 0;
+            top: 50px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            padding: 16px;
+            min-width: 300px;
+            display: none;
+        }
+
+        .profile-menu.show {
+            display: block;
+        }
+
+        .profile-info {
+            text-align: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #dadce0;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: 500;
+            margin: 0 auto 12px;
+        }
+
+        .profile-email {
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        /* Game Stats */
+        .game-stats {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 200;
+            min-width: 250px;
+        }
+
+        .game-stats h3 {
+            margin-bottom: 12px;
+            color: #202124;
+            font-size: 16px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #5f6368;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e8f0fe;
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a73e8, #34a853);
+            transition: width 0.3s;
+        }
+
+        /* Victory Message */
+        .victory-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            text-align: center;
+            z-index: 300;
+            display: none;
+        }
+
+        .victory-message h2 {
+            color: #34a853;
+            margin-bottom: 16px;
+            font-size: 32px;
+        }
+
+        .victory-message p {
+            color: #5f6368;
+            margin-bottom: 24px;
+            font-size: 18px;
+        }
+
+        .restart-button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .restart-button:hover {
+            background-color: #1765cc;
+        }
+
+        /* Notification Toast */
+        .notification-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #323232;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            display: none;
+        }
+
+        .notification-toast.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+
+        /* Email View */
+        .email-view {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 120;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .email-view.show {
+            display: block;
+        }
+
+        .email-view-header {
+            padding: 20px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .email-view-body {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .email-view-subject {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+
+        .email-view-from {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .email-view-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #202124;
+        }
+    </style>
+</head>
+<body>
+    <!-- Wemail Header -->
+    <div class="gmail-header">
+        <div class="logo-section">
+            <div class="hamburger" id="hamburger">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+            </div>
+            <div class="logo-text">
+                <span style="color: #ea4335;">W</span><span style="color: #fbbc04;">e</span><span style="color: #34a853;">m</span><span style="color: #4285f4;">a</span><span style="color: #ea4335;">i</span><span style="color: #fbbc04;">l</span>
+            </div>
+        </div>
+        
+        <div class="search-bar">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input type="text" class="search-input" id="search-input" placeholder="Search mail">
+        </div>
+
+        <div class="header-icons">
+            <div class="icon-button" id="help-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/>
+                </svg>
+            </div>
+            <div class="icon-button" id="settings-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                </svg>
+            </div>
+            <div class="icon-button" id="apps-button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z"/>
+                </svg>
+            </div>
+            <div class="profile-circle" id="profile-button">U</div>
+        </div>
+
+        <!-- Profile Menu -->
+        <div class="profile-menu" id="profile-menu">
+            <div class="profile-info">
+                <div class="profile-avatar">U</div>
+                <div style="font-weight: 500; margin-bottom: 4px;">User Account</div>
+                <div class="profile-email">user@wemail.com</div>
+            </div>
+            <div class="dropdown-item" onclick="showNotification('👤 Manage your account')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                </svg>
+                Manage Account
+            </div>
+            <div class="dropdown-item" onclick="showNotification('🔐 Privacy settings')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                </svg>
+                Privacy & Security
+            </div>
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-item" onclick="showNotification('➕ Add another account')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                </svg>
+                Add Account
+            </div>
+            <div class="dropdown-item" onclick="showNotification('🚪 Sign out')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                Sign Out
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <button class="compose-button" id="compose-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#ea4335">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                Compose
+            </button>
+
+            <div class="nav-item active" data-view="inbox">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                </svg>
+                Inbox
+                <span class="count" id="inbox-count">5000</span>
+            </div>
+
+            <div class="nav-item" data-view="starred">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                </svg>
+                Starred
+                <span class="count" id="starred-count">0</span>
+            </div>
+
+            <div class="nav-item" data-view="sent">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+                Sent
+                <span class="count" id="sent-count">0</span>
+            </div>
+
+            <div class="nav-item" data-view="drafts">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M21.99 8c0-.72-.37-1.35-.94-1.7L12 1 2.95 6.3C2.38 6.65 2 7.28 2 8v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2l-.01-10zM12 13L3.74 7.84 12 3l8.26 4.84L12 13z"/>
+                </svg>
+                Drafts
+                <span class="count" id="drafts-count">0</span>
+            </div>
+
+            <div class="nav-item" data-view="spam">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3 0-.72.58-1.3 1.3-1.3.72 0 1.3.58 1.3 1.3 0 .72-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z"/>
+                </svg>
+                Spam
+                <span class="count" id="spam-count">0</span>
+            </div>
+
+            <div class="nav-item" data-view="trash">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+                Trash
+                <span class="count" id="trash-count">0</span>
+            </div>
+
+            <div class="dropdown-divider" style="margin: 8px 16px;"></div>
+
+            <div class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/>
+                </svg>
+                Chat
+            </div>
+
+            <div class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5f6368">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-7 9h-2V5h2v6zm0 4h-2v-2h2v2z"/>
+                </svg>
+                Meet
+            </div>
+        </div>
+
+        <!-- Email Content Area -->
+        <div class="email-content">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <input type="checkbox" class="checkbox" id="select-all">
+                <div class="icon-button" id="refresh-btn" title="Refresh">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                    </svg>
+                </div>
+                <div class="icon-button" id="more-btn" title="More">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="icon-button" id="delete-btn" title="Delete">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                </div>
+                <div class="icon-button" id="archive-btn" title="Archive">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+                    </svg>
+                </div>
+                <div class="icon-button" id="spam-btn" title="Report spam">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3 0-.72.58-1.3 1.3-1.3.72 0 1.3.58 1.3 1.3 0 .72-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z"/>
+                    </svg>
+                </div>
+                <div class="icon-button" id="mark-read-btn" title="Mark as read">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                </div>
+                <span class="toolbar-text">1–50 of <span id="total-display">5,000</span></span>
+            </div>
+
+            <!-- Email List -->
+            <div class="email-list" id="email-list">
+                <!-- Emails will be dynamically generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Compose Window -->
+    <div class="compose-window" id="compose-window">
+        <div class="compose-header">
+            <h3>New Message</h3>
+            <div class="compose-controls">
+                <button id="minimize-compose" title="Minimize">_</button>
+                <button id="maximize-compose" title="Full screen">□</button>
+                <button id="close-compose" title="Close">✕</button>
+            </div>
+        </div>
+        <div class="compose-body">
+            <div class="compose-field">
+                <label>To</label>
+                <input type="email" id="compose-to" placeholder="Recipients">
+            </div>
+            <div class="compose-field">
+                <label>Subject</label>
+                <input type="text" id="compose-subject" placeholder="Subject">
+            </div>
+            <div class="compose-message">
+                <textarea id="compose-message" placeholder="Compose email"></textarea>
+            </div>
+        </div>
+        <div class="compose-footer">
+            <button class="send-button" id="send-email-btn">Send</button>
+            <div class="icon-button" title="Attach files">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/>
+                </svg>
+            </div>
+            <div class="icon-button" title="Insert emoji">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                </svg>
+            </div>
+            <div class="icon-button" title="Delete draft">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="icon-button" id="close-settings">✕</button>
+        </div>
+        <div class="settings-section">
+            <h3>Display</h3>
+            <div class="settings-option">
+                <label>Conversation view</label>
+                <div class="toggle-switch active" data-setting="conversation"></div>
+            </div>
+            <div class="settings-option">
+                <label>Reading pane</label>
+                <div class="toggle-switch" data-setting="reading-pane"></div>
+            </div>
+            <div class="settings-option">
+                <label>Hover actions</label>
+                <div class="toggle-switch active" data-setting="hover"></div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Notifications</h3>
+            <div class="settings-option">
+                <label>Desktop notifications</label>
+                <div class="toggle-switch active" data-setting="desktop"></div>
+            </div>
+            <div class="settings-option">
+                <label>New mail sound</label>
+                <div class="toggle-switch" data-setting="sound"></div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Game Mode</h3>
+            <div class="settings-option">
+                <label>Show game stats</label>
+                <div class="toggle-switch active" data-setting="game-stats"></div>
+            </div>
+            <div class="settings-option">
+                <label>Easy mode (10x speed)</label>
+                <div class="toggle-switch" data-setting="easy-mode"></div>
+            </div>
+        </div>
+        <div class="settings-section">
+            <h3>Theme</h3>
+            <div class="dropdown-item" onclick="showNotification('🎨 Light theme selected')">Light</div>
+            <div class="dropdown-item" onclick="showNotification('🌙 Dark theme (not available)')">Dark</div>
+            <div class="dropdown-item" onclick="showNotification('⚙️ System default')">System default</div>
+        </div>
+    </div>
+
+    <!-- Email View -->
+    <div class="email-view" id="email-view">
+        <div class="email-view-header">
+            <div class="icon-button" id="back-to-inbox">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+            </div>
+            <div class="icon-button" title="Archive">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>
+                </svg>
+            </div>
+            <div class="icon-button" title="Delete">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+            </div>
+        </div>
+        <div class="email-view-body">
+            <div class="email-view-subject" id="view-subject"></div>
+            <div class="email-view-from">
+                <div class="profile-circle" style="width: 40px; height: 40px; font-size: 18px;">S</div>
+                <div>
+                    <div style="font-weight: 500; font-size: 14px;" id="view-sender"></div>
+                    <div style="font-size: 12px; color: #5f6368;" id="view-time"></div>
+                </div>
+            </div>
+            <div class="email-view-content" id="view-content"></div>
+        </div>
+    </div>
+
+    <!-- Game Stats -->
+    <div class="game-stats" id="game-stats">
+        <h3>🎮 Game Progress</h3>
+        <div class="stat-row">
+            <span>Emails Remaining:</span>
+            <span class="stat-value" id="remaining-count">5000</span>
+        </div>
+        <div class="stat-row">
+            <span>Emails Cleared:</span>
+            <span class="stat-value" id="cleared-count">0</span>
+        </div>
+        <div class="stat-row">
+            <span>Time Elapsed:</span>
+            <span class="stat-value" id="time-elapsed">0:00</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Victory Message -->
+    <div class="victory-message" id="victory-message">
+        <h2>🎉 Inbox Zero!</h2>
+        <p>Congratulations! You've cleared all emails!</p>
+        <p>Time: <span id="final-time"></span></p>
+        <button class="restart-button" onclick="location.reload()">Play Again</button>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="notification-toast" id="notification-toast"></div>
+
+    <script>
+        // Email data generators
+        const senders = [
+            'LinkedIn', 'Facebook', 'Amazon', 'Netflix', 'Twitter', 'Instagram',
+            'PayPal', 'GitHub', 'Slack', 'Microsoft', 'Apple', 'Google',
+            'eBay', 'Spotify', 'YouTube', 'Pinterest', 'Reddit', 'Medium',
+            'Salesforce', 'Zoom', 'Dropbox', 'Adobe', 'Airbnb', 'Uber',
+            'Boss (Urgent)', 'HR Department', 'IT Support', 'Marketing Team',
+            'Newsletter Weekly', 'Daily Digest', 'Promotions', 'Social Updates',
+            'Security Alert', 'Password Reset', 'Account Verification', 'Order Confirmation',
+            'Shipping Notification', 'Review Request', 'Survey Invitation', 'Event Reminder',
+            'Meeting Invitation', 'Team Update', 'Project Deadline', 'Client Follow-up',
+            'Invoice Reminder', 'Subscription Renewal', 'Special Offer', 'Flash Sale'
+        ];
+
+        const subjects = [
+            'Your order has shipped',
+            'Action required: Verify your account',
+            'You have a new message',
+            'Weekly summary',
+            'Your subscription is expiring',
+            'New login detected',
+            'Password reset request',
+            'Meeting reminder: Tomorrow at 2pm',
+            '50% off everything - Today only!',
+            'Your invoice is ready',
+            'Project update required',
+            'Congratulations! You won',
+            'Please review this document',
+            'Urgent: Server maintenance tonight',
+            'New comment on your post',
+            'Someone viewed your profile',
+            'Your report is ready',
+            'Deadline approaching',
+            'Thank you for your purchase',
+            'Rate your recent experience',
+            'New features available',
+            'Security alert',
+            'System update required',
+            'Invitation to connect',
+            'Your download is ready'
+        ];
+
+        const previews = [
+            'Click here to view details...',
+            'Thanks for being a valued customer...',
+            'We noticed unusual activity on your account...',
+            'Your order #12345 has been shipped and will arrive...',
+            'Don\'t miss out on this limited time offer...',
+            'Please take a moment to review...',
+            'This is a reminder that your meeting is scheduled...',
+            'Your feedback helps us improve...',
+            'We\'ve made some exciting updates...',
+            'Attached please find the document...',
+            'Let\'s schedule a time to discuss...',
+            'Thank you for your patience...'
+        ];
+
+        const emailBodies = [
+            'Thank you for your recent purchase. Your order has been processed and will be shipped within 1-2 business days. You can track your package using the tracking number provided in your confirmation email.',
+            'We\'ve detected unusual activity on your account. For your security, please verify your identity by clicking the link below and entering your credentials.',
+            'Your subscription will expire in 7 days. To continue enjoying our services without interruption, please renew your subscription today.',
+            'This is a friendly reminder that you have a meeting scheduled for tomorrow at 2:00 PM. Please review the attached agenda and come prepared with any questions.',
+            'We\'re excited to announce new features that will enhance your experience! Check out what\'s new and start using these tools today.',
+            'Your feedback is important to us. Please take a moment to rate your recent experience and let us know how we can improve our service.',
+            'Important security update: We\'ve made improvements to protect your account. Please review the changes and update your security settings.',
+            'Congratulations! You\'ve been selected for our exclusive offer. This is a limited time opportunity, so act fast to claim your reward.',
+            'Your weekly summary is ready. Here\'s a breakdown of your activity, achievements, and recommendations for the coming week.',
+            'Thank you for being a valued member of our community. We appreciate your continued support and look forward to serving you.'
+        ];
+
+        const times = ['9:30 AM', '10:15 AM', '11:42 AM', '12:03 PM', '1:28 PM', '2:45 PM', '3:17 PM', '4:22 PM', 'Yesterday', '2 days ago', 'Jan 15', 'Jan 14', 'Jan 13', 'Jan 12'];
+
+        // Game state
+        let emails = [];
+        let sentEmails = [];
+        let starredEmails = [];
+        let spamEmails = [];
+        let trashedEmails = [];
+        let archivedEmails = [];
+        let drafts = [];
+        let totalEmails = 5000;
+        let clearedEmails = 0;
+        let startTime = Date.now();
+        let timerInterval;
+        let currentView = 'inbox';
+        let easyMode = false;
+
+        // Initialize game
+        function initGame() {
+            for (let i = 0; i < totalEmails; i++) {
+                emails.push({
+                    id: i,
+                    sender: senders[Math.floor(Math.random() * senders.length)],
+                    subject: subjects[Math.floor(Math.random() * subjects.length)],
+                    preview: previews[Math.floor(Math.random() * previews.length)],
+                    body: emailBodies[Math.floor(Math.random() * emailBodies.length)],
+                    time: times[Math.floor(Math.random() * times.length)],
+                    read: false,
+                    starred: false,
+                    selected: false
+                });
+            }
+
+            renderEmails();
+            updateStats();
+            startTimer();
+            setupEventListeners();
+        }
+
+        // Setup all event listeners
+        function setupEventListeners() {
+            // Header buttons
+            document.getElementById('hamburger').addEventListener('click', toggleSidebar);
+            document.getElementById('settings-button').addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.toggle('show');
+            });
+            document.getElementById('close-settings').addEventListener('click', () => {
+                document.getElementById('settings-panel').classList.remove('show');
+            });
+            document.getElementById('help-button').addEventListener('click', () => {
+                showNotification('❓ Help center - Focus on clearing your inbox!');
+            });
+            document.getElementById('apps-button').addEventListener('click', () => {
+                showNotification('📱 Google apps menu');
+            });
+            document.getElementById('profile-button').addEventListener('click', (e) => {
+                document.getElementById('profile-menu').classList.toggle('show');
+                e.stopPropagation();
+            });
+
+            // Close profile menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#profile-button') && !e.target.closest('#profile-menu')) {
+                    document.getElementById('profile-menu').classList.remove('show');
+                }
+            });
+
+            // Compose button
+            document.getElementById('compose-btn').addEventListener('click', openCompose);
+            document.getElementById('close-compose').addEventListener('click', closeCompose);
+            document.getElementById('minimize-compose').addEventListener('click', () => {
+                showNotification('📝 Compose minimized');
+                closeCompose();
+            });
+            document.getElementById('send-email-btn').addEventListener('click', sendEmail);
+
+            // Navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const view = item.dataset.view;
+                    if (view) switchView(view);
+                });
+            });
+
+            // Toolbar buttons
+            document.getElementById('select-all').addEventListener('change', selectAll);
+            document.getElementById('refresh-btn').addEventListener('click', refresh);
+            document.getElementById('delete-btn').addEventListener('click', deleteSelected);
+            document.getElementById('archive-btn').addEventListener('click', archiveSelected);
+            document.getElementById('spam-btn').addEventListener('click', markAsSpam);
+            document.getElementById('mark-read-btn').addEventListener('click', markAsRead);
+            document.getElementById('more-btn').addEventListener('click', () => {
+                showNotification('⋮ More actions menu');
+            });
+
+            // Search
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                searchEmails(e.target.value);
+            });
+
+            // Settings toggles
+            document.querySelectorAll('.toggle-switch').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const setting = this.dataset.setting;
+                    
+                    if (setting === 'game-stats') {
+                        document.getElementById('game-stats').style.display = 
+                            this.classList.contains('active') ? 'block' : 'none';
+                    }
+                    if (setting === 'easy-mode') {
+                        easyMode = this.classList.contains('active');
+                        showNotification(easyMode ? '⚡ Easy mode activated!' : 'Normal mode activated');
+                    }
+                });
+            });
+
+            // Email view
+            document.getElementById('back-to-inbox').addEventListener('click', () => {
+                document.getElementById('email-view').classList.remove('show');
+            });
+        }
+
+        // Toggle sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        // Switch views
+        function switchView(view) {
+            currentView = view;
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.view === view) {
+                    item.classList.add('active');
+                }
+            });
+            renderEmails();
+        }
+
+        // Get current emails
+        function getCurrentEmails() {
+            switch(currentView) {
+                case 'inbox': return emails;
+                case 'starred': return starredEmails;
+                case 'sent': return sentEmails;
+                case 'drafts': return drafts;
+                case 'spam': return spamEmails;
+                case 'trash': return trashedEmails;
+                default: return emails;
+            }
+        }
+
+        // Render emails
+        function renderEmails() {
+            const emailList = document.getElementById('email-list');
+            emailList.innerHTML = '';
+
+            const currentEmails = getCurrentEmails();
+            const visibleEmails = currentEmails.slice(0, 50);
+            
+            if (visibleEmails.length === 0) {
+                emailList.innerHTML = `<div style="text-align: center; padding: 40px; color: #5f6368; font-size: 16px;">
+                    ${currentView === 'inbox' ? '🎉 No messages in Inbox' : `No ${currentView} emails`}
+                </div>`;
+                return;
+            }
+            
+            visibleEmails.forEach(email => {
+                const row = document.createElement('div');
+                row.className = `email-row ${email.read ? 'read' : 'unread'}`;
+                row.dataset.id = email.id;
+                
+                row.innerHTML = `
+                    <input type="checkbox" class="email-checkbox" data-id="${email.id}" ${email.selected ? 'checked' : ''}>
+                    <span class="star ${email.starred ? 'starred' : ''}" data-id="${email.id}">★</span>
+                    <div class="email-sender">${email.sender}</div>
+                    <div class="email-subject">
+                        <span>${email.subject}</span>
+                        <span class="email-preview">- ${email.preview}</span>
+                    </div>
+                    <div class="email-time">${email.time}</div>
+                `;
+
+                row.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('email-checkbox') && 
+                        !e.target.classList.contains('star')) {
+                        openEmail(email);
+                    }
+                });
+
+                emailList.appendChild(row);
+            });
+
+            // Checkbox listeners
+            document.querySelectorAll('.email-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.dataset.id);
+                    const email = findEmailById(id);
+                    if (email) email.selected = e.target.checked;
+                    e.stopPropagation();
+                });
+            });
+
+            // Star listeners
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', (e) => {
+                    const id = parseInt(e.target.dataset.id);
+                    toggleStar(id);
+                    e.stopPropagation();
+                });
+            });
+
+            updateStats();
+        }
+
+        // Find email by ID
+        function findEmailById(id) {
+            return emails.find(e => e.id === id) ||
+                   starredEmails.find(e => e.id === id) ||
+                   sentEmails.find(e => e.id === id) ||
+                   drafts.find(e => e.id === id) ||
+                   spamEmails.find(e => e.id === id) ||
+                   trashedEmails.find(e => e.id === id);
+        }
+
+        // Open email
+        function openEmail(email) {
+            document.getElementById('view-subject').textContent = email.subject;
+            document.getElementById('view-sender').textContent = email.sender;
+            document.getElementById('view-time').textContent = email.time;
+            document.getElementById('view-content').textContent = email.body;
+            document.getElementById('email-view').classList.add('show');
+            
+            if (!email.read && currentView === 'inbox') {
+                email.read = true;
+                renderEmails();
+            }
+        }
+
+        // Toggle star
+        function toggleStar(id) {
+            const email = findEmailById(id);
+            if (email) {
+                email.starred = !email.starred;
+                
+                if (email.starred) {
+                    if (!starredEmails.find(e => e.id === id)) {
+                        starredEmails.push(email);
+                    }
+                    showNotification('⭐ Added to Starred');
+                } else {
+                    starredEmails = starredEmails.filter(e => e.id !== id);
+                    showNotification('Removed from Starred');
+                }
+                
+                renderEmails();
+            }
+        }
+
+        // Select all
+        function selectAll(e) {
+            const checked = e.target.checked;
+            const currentEmails = getCurrentEmails();
+            currentEmails.slice(0, 50).forEach(email => {
+                email.selected = checked;
+            });
+            renderEmails();
+            if (checked) showNotification(`✓ Selected ${Math.min(50, currentEmails.length)} emails`);
+        }
+
+        // Refresh
+        function refresh() {
+            showNotification('🔄 Refreshing...');
+            setTimeout(() => {
+                renderEmails();
+                showNotification('✓ Inbox refreshed');
+            }, 500);
+        }
+
+        // Delete selected
+        function deleteSelected() {
+            const currentEmails = getCurrentEmails();
+            const selectedEmails = currentEmails.filter(e => e.selected);
+            
+            if (selectedEmails.length === 0) {
+                showNotification('⚠️ No emails selected');
+                return;
+            }
+
+            const multiplier = easyMode ? 10 : 1;
+            const deleteCount = selectedEmails.length * multiplier;
+            
+            if (currentView === 'inbox') {
+                selectedEmails.forEach(email => trashedEmails.push({...email, selected: false}));
+                
+                // In easy mode, delete 10x more emails
+                if (easyMode) {
+                    const toDelete = emails.slice(0, deleteCount);
+                    emails = emails.slice(deleteCount);
+                } else {
+                    emails = emails.filter(e => !e.selected);
+                }
+                
+                clearedEmails += deleteCount;
+                showNotification(`🗑️ Moved ${deleteCount} email(s) to Trash`);
+            } else if (currentView === 'trash') {
+                trashedEmails = trashedEmails.filter(e => !e.selected);
+                showNotification(`✓ Permanently deleted ${selectedEmails.length} email(s)`);
+            } else if (currentView === 'spam') {
+                spamEmails = spamEmails.filter(e => !e.selected);
+                showNotification(`✓ Deleted ${selectedEmails.length} spam email(s)`);
+            }
+            
+            renderEmails();
+            checkVictory();
+        }
+
+        // Archive selected
+        function archiveSelected() {
+            const selectedEmails = emails.filter(e => e.selected);
+            
+            if (selectedEmails.length === 0) {
+                showNotification('⚠️ No emails selected');
+                return;
+            }
+
+            const multiplier = easyMode ? 10 : 1;
+            const archiveCount = selectedEmails.length * multiplier;
+            
+            selectedEmails.forEach(email => archivedEmails.push({...email, selected: false}));
+            
+            if (easyMode) {
+                const toArchive = emails.slice(0, archiveCount);
+                emails = emails.slice(archiveCount);
+            } else {
+                emails = emails.filter(e => !e.selected);
+            }
+            
+            clearedEmails += archiveCount;
+            showNotification(`📦 Archived ${archiveCount} email(s)`);
+            renderEmails();
+            checkVictory();
+        }
+
+        // Mark as spam
+        function markAsSpam() {
+            const selectedEmails = emails.filter(e => e.selected);
+            
+            if (selectedEmails.length === 0) {
+                showNotification('⚠️ No emails selected');
+                return;
+            }
+
+            const multiplier = easyMode ? 10 : 1;
+            const spamCount = selectedEmails.length * multiplier;
+            
+            selectedEmails.forEach(email => spamEmails.push({...email, selected: false}));
+            
+            if (easyMode) {
+                const toSpam = emails.slice(0, spamCount);
+                emails = emails.slice(spamCount);
+            } else {
+                emails = emails.filter(e => !e.selected);
+            }
+            
+            clearedEmails += spamCount;
+            showNotification(`🚫 Marked ${spamCount} email(s) as spam`);
+            renderEmails();
+            checkVictory();
+        }
+
+        // Mark as read
+        function markAsRead() {
+            const selectedEmails = emails.filter(e => e.selected);
+            
+            if (selectedEmails.length === 0) {
+                showNotification('⚠️ No emails selected');
+                return;
+            }
+
+            selectedEmails.forEach(email => email.read = true);
+            showNotification(`✓ Marked ${selectedEmails.length} as read`);
+            renderEmails();
+        }
+
+        // Search emails
+        function searchEmails(query) {
+            if (!query) {
+                renderEmails();
+                return;
+            }
+            
+            const emailList = document.getElementById('email-list');
+            emailList.innerHTML = '';
+            
+            const currentEmails = getCurrentEmails();
+            const filtered = currentEmails.filter(email => 
+                email.sender.toLowerCase().includes(query.toLowerCase()) ||
+                email.subject.toLowerCase().includes(query.toLowerCase()) ||
+                email.preview.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            if (filtered.length === 0) {
+                emailList.innerHTML = '<div style="text-align: center; padding: 40px; color: #5f6368;">No emails found</div>';
+                return;
+            }
+            
+            filtered.slice(0, 50).forEach(email => {
+                const row = document.createElement('div');
+                row.className = `email-row ${email.read ? 'read' : 'unread'}`;
+                row.innerHTML = `
+                    <input type="checkbox" class="email-checkbox" data-id="${email.id}">
+                    <span class="star ${email.starred ? 'starred' : ''}" data-id="${email.id}">★</span>
+                    <div class="email-sender">${email.sender}</div>
+                    <div class="email-subject">
+                        <span>${email.subject}</span>
+                        <span class="email-preview">- ${email.preview}</span>
+                    </div>
+                    <div class="email-time">${email.time}</div>
+                `;
+                emailList.appendChild(row);
+            });
+        }
+
+        // Compose functions
+        function openCompose() {
+            document.getElementById('compose-window').classList.add('show');
+            document.getElementById('compose-to').focus();
+        }
+
+        function closeCompose() {
+            document.getElementById('compose-window').classList.remove('show');
+        }
+
+        function sendEmail() {
+            const to = document.getElementById('compose-to').value;
+            const subject = document.getElementById('compose-subject').value;
+            const message = document.getElementById('compose-message').value;
+
+            if (!to || !subject || !message) {
+                showNotification('⚠️ Please fill in all fields');
+                return;
+            }
+
+            const newEmail = {
+                id: Date.now(),
+                sender: 'Me',
+                subject: subject,
+                preview: message.substring(0, 50) + '...',
+                body: message,
+                time: 'Just now',
+                read: true,
+                starred: false,
+                selected: false
+            };
+
+            sentEmails.unshift(newEmail);
+            
+            // Clear form
+            document.getElementById('compose-to').value = '';
+            document.getElementById('compose-subject').value = '';
+            document.getElementById('compose-message').value = '';
+            
+            closeCompose();
+            showNotification('✓ Email sent successfully!');
+            updateStats();
+        }
+
+        // Update stats
+        function updateStats() {
+            const totalRemaining = emails.length + spamEmails.length + trashedEmails.length;
+            
+            document.getElementById('remaining-count').textContent = totalRemaining;
+            document.getElementById('cleared-count').textContent = clearedEmails;
+            document.getElementById('inbox-count').textContent = emails.length;
+            document.getElementById('starred-count').textContent = starredEmails.length;
+            document.getElementById('sent-count').textContent = sentEmails.length;
+            document.getElementById('drafts-count').textContent = drafts.length;
+            document.getElementById('spam-count').textContent = spamEmails.length;
+            document.getElementById('trash-count').textContent = trashedEmails.length;
+            
+            const currentEmails = getCurrentEmails();
+            document.getElementById('total-display').textContent = currentEmails.length.toLocaleString();
+            
+            const progress = ((clearedEmails / totalEmails) * 100).toFixed(1);
+            document.getElementById('progress-fill').style.width = progress + '%';
+        }
+
+        // Show notification
+        function showNotification(message) {
+            const toast = document.getElementById('notification-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // Timer
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                document.getElementById('time-elapsed').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // Check victory
+        function checkVictory() {
+            if (emails.length === 0 && spamEmails.length === 0 && trashedEmails.length === 0) {
+                showVictory();
+            }
+        }
+
+        // Show victory
+        function showVictory() {
+            clearInterval(timerInterval);
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('final-time').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('victory-message').style.display = 'block';
+        }
+
+        // Initialize the game
+        initGame();
+    </script>
+</body>
+</html>
