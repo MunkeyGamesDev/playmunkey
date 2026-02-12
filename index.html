@@ -1,171 +1,80 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MunkeyGames</title>
-  <link rel="stylesheet" href="style.css">
-
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      background-color: #0f111a;
-      color: #fff;
-      font-family: "Courier New", monospace;
-      cursor: default;
-    }
-
-    body {
-      background-image: repeating-linear-gradient(
-        0deg,
-        rgba(0, 255, 0, 0.05) 0,
-        rgba(0, 255, 0, 0.05) 1px,
-        transparent 1px,
-        transparent 2px
-      );
-      background-size: 100% 20px;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    main {
-      flex: 1;
-    }
-
-    @keyframes moveCode {
-      0% {background-position: 0 0;}
-      100% {background-position: 0 100%;}
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      background: 
-        radial-gradient(circle, rgba(0,255,0,0.05) 1px, transparent 1px) 0 0,
-        radial-gradient(circle, rgba(0,255,0,0.05) 1px, transparent 1px) 5px 5px;
-      background-size: 10px 10px;
-      pointer-events: none;
-      animation: moveCode 5s linear infinite;
-      z-index: 0;
-    }
-
-    a.discord {
-      color: #7289da;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    h1 span.emoji-wobble {
-      display: inline-block;
-      cursor: pointer;
-    }
-
-    @keyframes wobble {
-      0%, 100% { transform: rotate(0deg); }
-      15% { transform: rotate(-15deg); }
-      30% { transform: rotate(10deg); }
-      45% { transform: rotate(-10deg); }
-      60% { transform: rotate(5deg); }
-      75% { transform: rotate(-5deg); }
-    }
-
-    h1 span.emoji-wobble.wobble {
-      animation: wobble 0.6s ease;
-    }
-
-    .binary-particle {
-      position: absolute;
-      font-family: monospace;
-      color: #0f0;
-      pointer-events: none;
-      user-select: none;
-      animation: fly 0.8s forwards;
-      z-index: 2;
-    }
-
-    @keyframes fly {
-      0% { opacity: 1; transform: translate(0,0) scale(1); }
-      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
-    }
-
-    footer {
-      text-align: center;
-      padding: 5px 0;
-      font-size: 12px;
-      background-color: #0d0f14;
-      position: relative;
-      z-index: 1;
-    }
-
-    #visitor-counter {
-      margin-top: 3px;
-      font-weight: bold;
-      color: #0f0;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MunkeyGames</title>
+<link rel="stylesheet" href="style.css">
+<style>
+html,body{height:100%;margin:0;display:flex;flex-direction:column;background-color:#0f111a;color:#fff;font-family:"Courier New",monospace;cursor:default}
+body{background-image:repeating-linear-gradient(0deg,rgba(0,255,0,0.05)0,rgba(0,255,0,0.05)1px,transparent 1px,transparent 2px);background-size:100% 20px;overflow-x:hidden;position:relative}
+main{flex:1}
+@keyframes moveCode{0%{background-position:0 0}100%{background-position:0 100%}}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle,rgba(0,255,0,0.05)1px,transparent 1px)0 0,radial-gradient(circle,rgba(0,255,0,0.05)1px,transparent 1px)5px 5px;background-size:10px 10px;pointer-events:none;animation:moveCode 5s linear infinite;z-index:0}
+a.discord{color:#7289da;text-decoration:none;font-weight:bold}
+h1 span.emoji-wobble{display:inline-block;cursor:pointer}
+@keyframes wobble{0%,100%{transform:rotate(0deg)}15%{transform:rotate(-15deg)}30%{transform:rotate(10deg)}45%{transform:rotate(-10deg)}60%{transform:rotate(5deg)}75%{transform:rotate(-5deg)}}
+h1 span.emoji-wobble.wobble{animation:wobble .6s ease}
+.binary-particle{position:absolute;font-family:monospace;color:#0f0;pointer-events:none;user-select:none;animation:fly .8s forwards;z-index:2}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.5)}}
+footer{text-align:center;padding:5px 0;font-size:12px;background-color:#0d0f14;position:relative;z-index:1}
+#visitor-counter{margin-top:3px;font-weight:bold;color:#0f0}
+</style>
 </head>
 <body>
 
 <header>
-  <h1>PlayMunkey<span class="emoji-wobble">🐵</span>com</h1>
-  <p>By - MunkeyGames</p>
-  <a class="discord" href="https://discord.gg/SgZQ3UMh5R" target="_blank">Join Discord</a>
+<h1>PlayMunkey<span class="emoji-wobble">🐵</span>com</h1>
+<p>By - MunkeyGames</p>
+<a class="discord" href="https://discord.gg/SgZQ3UMh5R" target="_blank">Join Discord</a>
 </header>
 
 <main>
-  <div id="games-container" class="grid"></div>
+<div id="games-container" class="grid"></div>
 </main>
 
 <footer>
-  © 2026 MunkeyGamesStudio
-  <div id="visitor-counter">Total Visitors: <span id="visitor-count">0</span></div>
+© 2026 MunkeyGamesStudio
+<div id="visitor-counter">Total Visitors: <span id="visitor-count">0</span></div>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.35.0/dist/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  const monkey = document.querySelector('.emoji-wobble');
-  monkey.addEventListener('click', () => {
-    monkey.classList.remove('wobble'); 
-    void monkey.offsetWidth; 
-    monkey.classList.add('wobble');
-  });
+const monkey=document.querySelector('.emoji-wobble')
+monkey.addEventListener('click',()=>{monkey.classList.remove('wobble');void monkey.offsetWidth;monkey.classList.add('wobble')})
 
-  document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('emoji-wobble')) return;
-    const particlesCount = 20;
-    for (let i = 0; i < particlesCount; i++) {
-      const particle = document.createElement('span');
-      particle.classList.add('binary-particle');
-      particle.textContent = Math.random() > 0.5 ? '0' : '1';
-      particle.style.left = e.pageX + 'px';
-      particle.style.top = e.pageY + 'px';
-      const dx = (Math.random() - 0.5) * 200 + 'px';
-      const dy = (Math.random() - 0.5) * 200 + 'px';
-      particle.style.setProperty('--dx', dx);
-      particle.style.setProperty('--dy', dy);
-      document.body.appendChild(particle);
-      particle.addEventListener('animationend', () => particle.remove());
-    }
-  });
+document.addEventListener('click',e=>{
+if(e.target.classList.contains('emoji-wobble'))return
+for(let i=0;i<20;i++){
+const particle=document.createElement('span')
+particle.classList.add('binary-particle')
+particle.textContent=Math.random()>.5?'0':'1'
+particle.style.left=e.pageX+'px'
+particle.style.top=e.pageY+'px'
+particle.style.setProperty('--dx',(Math.random()-.5)*200+'px')
+particle.style.setProperty('--dy',(Math.random()-.5)*200+'px')
+document.body.appendChild(particle)
+particle.addEventListener('animationend',()=>particle.remove())
+}
+})
 
-  const SUPABASE_URL = 'https://gwiveqgfbslonwmvtluv.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE';
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  const visitorCountEl = document.getElementById('visitor-count');
+const SUPABASE_URL='https://gwiveqgfbslonwmvtluv.supabase.co'
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3aXZlcWdmYnNsb253bXZ0bHV2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4NTIxNTQsImV4cCI6MjA4NjQyODE1NH0.QEJDJXCURL-HxsFyIJmA6wLjLvnrIFLHnS_4ezL-quE'
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+const visitorCountEl=document.getElementById('visitor-count')
 
-  async function updateVisitorCount() {
-    const { data, error } = await supabase.from('visitors').select('total').eq('id', 1).single();
-    if (!error && data) visitorCountEl.textContent = data.total;
-    await supabase.from('visitors').update({ total: data.total + 1 }).eq('id', 1);
-  }
+async function updateVisitorCount(){
+let{data,error}=await db.from('visitors').select('*').limit(1).maybeSingle()
+if(!data){
+const insert=await db.from('visitors').insert({total:0}).select().single()
+data=insert.data
+}
+const newTotal=data.total+1
+await db.from('visitors').update({total:newTotal}).eq('id',data.id)
+visitorCountEl.textContent=newTotal
+}
 
-  updateVisitorCount();
+updateVisitorCount()
 </script>
 
 <script src="loader.js"></script>
