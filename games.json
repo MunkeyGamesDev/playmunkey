@@ -23,6 +23,12 @@
       "description": "Check Your Emails!",
       "file": "emailsim.html",
       "image": "emailsim.png"
+    },
+    {
+      "title": "MunkeysPlace",
+      "description": "Here we go again!",
+      "file": "MunkeysPlace.html",
+      "image": "MunkeysPlace.png"
     }
   ]
 }
