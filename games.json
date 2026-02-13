@@ -29,6 +29,12 @@
       "description": "Here we go again!",
       "file": "MunkeysPlace.html",
       "image": "MunkeysPlace.png"
+    },
+    {
+      "title": "Just Click",
+      "description": "The Worlds Best Clicker Game!",
+      "file": "JustClick.html",
+      "image": "JustClick.png"
     }
   ]
 }
