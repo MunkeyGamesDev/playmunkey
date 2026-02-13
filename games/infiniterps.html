@@ -41,7 +41,6 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
 .multi-input-group input{padding:10px;font-size:1em;margin:10px;width:200px;text-align:center;border:2px solid #000;border-radius:5px;background:#fff;font-family:'Press Start 2P',cursive;}
 .code-display{font-size:2em;color:#ff0;text-shadow:2px 2px 0 #000;margin:15px 0;padding:15px;background:#000;border-radius:8px;}
 .status-box{margin:15px 0;padding:15px;background:#e0e0e0;border:2px solid #000;border-radius:8px;font-size:0.7em;text-align:center;}
-
 </style>
 <script src="https://sites.super.myninja.ai/_assets/ninja-daytona-script.js"></script>
 </head>
@@ -90,7 +89,6 @@ h1{font-size:2em;margin:0;margin-bottom:10px;text-align:center;animation:title-p
   <div class="panel result"></div>
   <div class="button" id="quitBtn" style="position:absolute;bottom:80px;right:10px;padding:10px;font-size:0.7em;">Quit</div>
   <div class="scoreboard">Level: 1 | Player: 0 | AI: 0</div>
-
   <div class="new-set" id="newSet">NEW SET UNLOCKED!</div>
 </div>
 
@@ -114,6 +112,7 @@ const optionSets=[['🪨','📄','✂️'],['🦄','🌈','💩'],['🔥','💧'
 const emojiNames={'🪨':'Rock','📄':'Paper','✂️':'Scissors','🦄':'Unicorn','🌈':'Rainbow','💩':'Poop','🔥':'Fire','💧':'Water','🌱':'Plant','⚡':'Lightning','🍌':'Banana','👽':'Alien','🍕':'Pizza','🍔':'Burger','🌭':'Hotdog','🐙':'Octopus','🐳':'Whale','🦖':'Dino','🌞':'Sun','🌜':'Moon','⭐':'Star','🎩':'Hat','🕶️':'Sunglasses','👑':'Crown','🤖':'Robot','👾':'Monster','👻':'Ghost','💎':'Gem','🪙':'Coin','🧿':'Amulet','🥳':'Party','😱':'Scream','🤯':'Mindblown'};
 const rowRules=[{'🪨':['✂️'],'📄':['🪨'],'✂️':['📄']},{'🦄':['💩'],'🌈':['🦄'],'💩':['🌈']},{'🔥':['🌱'],'💧':['🔥'],'🌱':['💧']},{'⚡':['👽'],'🍌':['⚡'],'👽':['🍌']},{'🍕':['🌭'],'🍔':['🍕'],'🌭':['🍔']},{'🐙':['🦖'],'🐳':['🐙'],'🦖':['🐳']},{'🌞':['⭐'],'🌜':['🌞'],'⭐':['🌜']},{'🎩':['👑'],'🕶️':['🎩'],'👑':['🕶️']},{'🤖':['👻'],'👾':['🤖'],'👻':['👾']},{'💎':['🧿'],'🪙':['💎'],'🧿':['🪙']},{'🥳':['🤯'],'😱':['🥳'],'🤯':['😱']}];
 
+function getAIDifficulty(){return Math.min(0.25+currentLevel*0.05,0.7);}
 
 class SmartAI {
   constructor() {
@@ -123,18 +122,13 @@ class SmartAI {
     this.repeatCount = 0;
     this.lastRoundTime = 0;
     this.cooldownTime = 800;
-    
-
     this.positionTally = {0: 0, 1: 0, 2: 0};
     this.positionHistory = [];
     this.currentOptions = [];
   }
 
-
   analyzePattern() {
     if (this.choiceHistory.length < 2) return null;
-    
-
     const transitions = {};
     for (let i = 0; i < this.choiceHistory.length - 1; i++) {
       const current = this.choiceHistory[i];
@@ -142,8 +136,6 @@ class SmartAI {
       if (!transitions[current]) transitions[current] = {};
       transitions[current][next] = (transitions[current][next] || 0) + 1;
     }
-
-
     const lastChoice = this.choiceHistory[this.choiceHistory.length - 1];
     if (transitions[lastChoice]) {
       const counts = transitions[lastChoice];
@@ -153,27 +145,19 @@ class SmartAI {
     return null;
   }
 
-
   detectSpam(playerChoice) {
     const now = Date.now();
     const timeSinceLastRound = now - this.lastRoundTime;
-    
-
     if (playerChoice === this.lastPlayerChoice) {
       this.repeatCount++;
     } else {
       this.repeatCount = 0;
     }
-
-
     const isSpamming = this.repeatCount >= 2 || (timeSinceLastRound < this.cooldownTime && this.repeatCount >= 1);
-    
     this.lastPlayerChoice = playerChoice;
     this.lastRoundTime = now;
-    
     return isSpamming;
   }
-
 
   getCounterMove(predictedChoice) {
     const rules = rowRules[currentLevel];
@@ -182,84 +166,60 @@ class SmartAI {
         return winner;
       }
     }
-
     return optionSets[currentLevel][Math.floor(Math.random() * 3)];
   }
-
 
   recordPosition(position) {
     this.positionTally[position]++;
     this.positionHistory.push(position);
-    
-
     if (this.positionHistory.length > 20) {
       this.positionHistory.shift();
     }
   }
 
-
   getMostClickedPosition() {
     let maxCount = 0;
     let mostClicked = 1;
-    
     for (const [position, count] of Object.entries(this.positionTally)) {
       if (count > maxCount) {
         maxCount = count;
         mostClicked = parseInt(position);
       }
     }
-    
     return mostClicked;
   }
 
-
   predictFromPositionTally() {
     const mostClickedPos = this.getMostClickedPosition();
-    
-
     const totalClicks = this.positionTally[0] + this.positionTally[1] + this.positionTally[2];
     if (totalClicks >= 3) {
       return this.currentOptions[mostClickedPos];
     }
-    
     return null;
   }
 
-
   makeChoice(playerChoice, position) {
-
+    const d=getAIDifficulty();
+    const scale=d/0.7;
+    if (Math.random()<0.35) return this.getRandomChoice();
     this.recordPosition(position);
-    
     const isSpamming = this.detectSpam(playerChoice);
     this.choiceHistory.push(playerChoice);
-    
-
     if (this.choiceHistory.length > 10) {
       this.choiceHistory.shift();
     }
-
-
     if (isSpamming) {
-      
       const counter = this.getCounterMove(playerChoice);
-      return Math.random() < 0.9 ? counter : this.getRandomChoice();
+      return Math.random() < (0.45*scale) ? counter : this.getRandomChoice();
     }
-
-
     const positionPrediction = this.predictFromPositionTally();
-    if (positionPrediction && Math.random() < 0.65) {
+    if (positionPrediction && Math.random() < (0.325*scale)) {
       return this.getCounterMove(positionPrediction);
     }
-
-
     const predicted = this.analyzePattern();
-    if (predicted && Math.random() < 0.7) {
-      
+    if (predicted && Math.random() < (0.35*scale)) {
       return this.getCounterMove(predicted);
     }
-
-
-    
     return this.getRandomChoice();
   }
 
@@ -276,7 +236,6 @@ class SmartAI {
     this.positionTally = {0: 0, 1: 0, 2: 0};
     this.positionHistory = [];
     this.currentOptions = [];
-    
   }
 }
 
@@ -286,10 +245,7 @@ function updateChoices(){
   choicesDiv.innerHTML='';
   const rowDiv=document.createElement('div');
   rowDiv.classList.add('choice-row');
-  
-
   smartAI.currentOptions = optionSets[currentLevel];
-  
   optionSets[currentLevel].forEach((e, index) => {
     const div=document.createElement('div');
     div.classList.add('choice');
