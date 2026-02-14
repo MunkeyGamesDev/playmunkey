@@ -68,19 +68,20 @@ label{font-size:14px;font-weight:500}
 
 <script>
 const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
+const ctx=canvas.getContext("2d",{alpha:false});
 const gridSize=2;
 const cols=Math.floor(canvas.width/gridSize);
 const rows=Math.floor(canvas.height/gridSize);
+const size=cols*rows;
 
-const EMPTY=0,SAND=1,WATER=2,FIRE=3,WALL=4,LAVA=5,STONE=6,OIL=7,SMOKE=8,STEAM=9;
+const EMPTY=0,SAND=1,WATER=2,FIRE=3,WALL=4,LAVA=5,STONE=6,OIL=7,SMOKE=8;
 const PLANT=10,ACID=11,ICE=12,METAL=13,ELEC=14,GUNPOWDER=15,WOOD=16,GLASS=17,SALT=19;
 const VIRUS=21,CRYSTAL=22,MAGMA=23,CONCRETE=25,SNOW=27,MUD=28,HONEY=29;
 const LIQUID_N=32,CLONE=34,SEED=35,DIAMOND=36;
 const LIFE=48,FUNGUS=56,CORAL=57,ASH=58,RADIATION=59,WIRE=61,BATTERY=62,CLOUD=63;
 
 const names=[
-  "Empty","Sand","Water","Fire","Wall","Lava","Stone","Oil","Smoke","Steam",
+  "Empty","Sand","Water","Fire","Wall","Lava","Stone","Oil","Smoke","",
   "Plant","Acid","Ice","Metal","Electricity","Gunpowder","Wood","Glass","","Salt",
   "","Virus","Crystal","Magma","","Concrete","","Snow","Mud","Honey",
   "","","Liquid N","","Clone","Seed","Diamond","","","",
@@ -90,29 +91,22 @@ const names=[
 ];
 
 let colors={
-  1:"#DAA520",2:"#4169E1",3:"#FF4500",4:"#696969",5:"#FF6347",6:"#2F4F4F",7:"#8B4513",8:"#D3D3D3",9:"#FFFFFF",10:"#228B22",
-  11:"#00FF00",12:"#00CED1",13:"#C0C0C0",14:"#9370DB",15:"#2F2F2F",16:"#7A4A1E",17:"#87CEEB",19:"#FFFFFF",
+  1:"#DAA520",2:"#4169E1",3:"#FF4500",4:"#696969",5:"#FF6347",6:"#2F4F4F",7:"#8B4513",8:"#D3D3D3",
+  10:"#228B22",11:"#00FF00",12:"#00CED1",13:"#C0C0C0",14:"#9370DB",15:"#2F2F2F",16:"#7A4A1E",17:"#87CEEB",19:"#FFFFFF",
   21:"#800080",22:"#FF1493",23:"#DC143C",25:"#808080",27:"#FFFAFA",28:"#8B4513",29:"#FFD700",
   32:"#87CEFA",34:"#40E0D0",35:"#228B22",36:"#B9F2FF",
   48:"#00FF80",56:"#654321",57:"#FF7F50",58:"#6E6E6E",59:"#00FF00",61:"#FFD700",62:"#FFA500",63:"#A9A9A9"
 };
 
-function make2D(valFn){
-  const a=new Array(rows);
-  for(let y=0;y<rows;y++){
-    a[y]=new Array(cols);
-    for(let x=0;x<cols;x++) a[y][x]=valFn(x,y);
-  }
-  return a;
-}
-
-let grid=make2D(()=>EMPTY);
-let temperature=make2D(()=>25);
-let velocity=make2D(()=>({x:0,y:0}));
-let batteryCharge=make2D(()=>0);
-let cloudMoisture=make2D(()=>0);
-let waterContent=make2D(()=>0);
-let steamLife=make2D(()=>0);
+const grid=new Uint16Array(size);
+const temp=new Float32Array(size);
+const temp2=new Float32Array(size);
+const velX=new Float32Array(size);
+const velY=new Float32Array(size);
+const updated=new Uint8Array(size);
+const batteryCharge=new Uint16Array(size);
+const cloudMoisture=new Uint16Array(size);
+const waterContent=new Uint16Array(size);
 
 let tool=SAND;
 let drawing=false;
@@ -123,6 +117,9 @@ let gravity=1;
 let ambientHeat=25;
 let particleCount=0;
 let globalRain=false;
+let wind=0;
+let tick=0;
+let suppressCloudRain=false;
 
 const toolbar=document.getElementById("toolbar");
 const fpsDisplay=document.getElementById("fps");
@@ -137,7 +134,7 @@ const heatVal=document.getElementById("heatVal");
 const categories={
   "Basic Elements":[SAND,WATER,FIRE,WALL,STONE,ASH],
   "Liquids":[LAVA,MAGMA,OIL,ACID,HONEY,MUD],
-  "Gases":[SMOKE,STEAM,CLOUD],
+  "Gases":[SMOKE,CLOUD],
   "Organic":[PLANT,WOOD,SEED,VIRUS,LIFE,FUNGUS,CORAL],
   "Metals":[METAL,CONCRETE,WIRE,BATTERY],
   "Crystals":[ICE,SNOW,GLASS,CRYSTAL,DIAMOND,SALT],
@@ -148,39 +145,38 @@ const categories={
 
 function getParticleInfo(type){
   const info={
-    [SAND]:"Sand: Falls, piles up, absorbs water to become mud. Can melt into glass when extremely hot.",
-    [WATER]:"Water: Flows and settles. Freezes below 0°C, boils above 100°C. Conducts electricity.",
-    [FIRE]:"Fire: Burns flammables, heats neighbors, makes smoke/ash. Extinguished by water; steam forms.",
+    [SAND]:"Sand: Falls and piles up. Only turns into mud when it touches water.",
+    [WATER]:"Water: Flows and settles. Freezes below 0°C. Turns into smoke when boiled or flashed by heat.",
+    [FIRE]:"Fire: Burns flammables, heats neighbors, makes smoke/ash. Extinguished by water.",
     [WALL]:"Wall: Indestructible barrier.",
-    [LAVA]:"Lava: Hot liquid rock. Heats/burns nearby. Cools into stone; turns water into steam/stone.",
+    [LAVA]:"Lava: Hot liquid rock. Heats/burns nearby. Cools into stone; turns water into smoke/stone.",
     [MAGMA]:"Magma: Hotter than lava. Melts stone/metal more aggressively. Cools into stone.",
     [STONE]:"Stone: Solid. Can melt into lava at very high temperature.",
     [OIL]:"Oil: Flammable liquid. Floats on water and ignites easily.",
     [SMOKE]:"Smoke: Rises and dissipates over time.",
-    [STEAM]:"Steam: Rises like cloud and can condense into clouds when cooled; dissipates over time.",
-    [CLOUD]:"Cloud: Drifts slowly and rises. Builds moisture from steam/water and rains randomly from the top edge.",
-    [PLANT]:"Plant: Grows near water. Burns easily. Can be infected by virus.",
+    [CLOUD]:"Cloud: Drifts slowly and rises. Builds moisture from nearby water and can rain (not while you're placing clouds).",
+    [PLANT]:"Plant: Grows near water (slow). Burns easily. Can be infected by virus.",
     [WOOD]:"Wood: Solid organic. Burns into fire/ash; can be infected.",
-    [SEED]:"Seed: Sprouts into wood/plant if touching wet soil/water.",
-    [MUD]:"Mud: Wet sand. Flows slowly; dries back into sand over time. Helps seeds grow.",
+    [SEED]:"Seed: Sprouts into wood/plant if touching wet soil/water (slow).",
+    [MUD]:"Mud: Wet sand. Flows slowly and stays mud (does not dry back). Helps seeds grow.",
     [HONEY]:"Honey: Very viscous liquid. Burns slowly; thickly flows.",
-    [ACID]:"Acid: Corrosive liquid. Dissolves most materials (not wall/diamond). Neutralized by lots of water.",
+    [ACID]:"Acid: Corrosive liquid. Dissolves most materials (not wall/diamond). Diluted by lots of water.",
     [ICE]:"Ice: Solid frozen water. Melts above 0°C.",
-    [SNOW]:"Snow: Light frozen powder. Melts slowly; compacts into ice when very cold.",
+    [SNOW]:"Snow: Light frozen powder. Melts slowly.",
     [GLASS]:"Glass: Brittle solid. Made by melting sand; can crack from extreme heat/cold.",
-    [SALT]:"Salt: Powder that falls. Dissolves in water (water becomes saltier).",
+    [SALT]:"Salt: Powder that falls. Dissolves in water.",
     [CRYSTAL]:"Crystal: Grows from water slowly, conducts electricity. Can be etched by acid.",
     [DIAMOND]:"Diamond: Extremely durable. Resists heat/acid.",
-    [METAL]:"Metal: Solid conductor. Melts when very hot. Can corrode slightly in water/acid.",
+    [METAL]:"Metal: Solid conductor. Melts when very hot.",
     [WIRE]:"Wire: Durable conductor that carries electricity without being destroyed.",
     [BATTERY]:"Battery: Stores electricity and discharges bursts into nearby conductors/empty space.",
     [ELEC]:"Electricity: Spreads through water/metal/crystal/wire. Ignites flammables. Short-lived sparks.",
     [GUNPOWDER]:"Gunpowder: Falls like powder. Explodes if touched by fire/electricity.",
     [LIQUID_N]:"Liquid Nitrogen: Super-cold liquid. Freezes nearby water; snuffs fire; chills area.",
     [VIRUS]:"Virus: Spreads through organics and life; slowly dies out.",
-    [LIFE]:"Life: Spawns seeds/plants occasionally in empty nearby cells.",
-    [FUNGUS]:"Fungus: Spreads through organics; tends to climb upward.",
-    [CORAL]:"Coral: Grows only next to water and tends to expand slowly.",
+    [LIFE]:"Life: Spawns seeds/plants occasionally in empty nearby cells (slow).",
+    [FUNGUS]:"Fungus: Spreads through organics; tends to climb upward (slow).",
+    [CORAL]:"Coral: Grows only next to water and expands slowly.",
     [ASH]:"Ash: Light powder. Falls; dissolves a bit in water.",
     [RADIATION]:"Radiation: Randomly mutates nearby particles over time.",
     [CLONE]:"Clone: Mimics a nearby particle type occasionally."
@@ -188,7 +184,123 @@ function getParticleInfo(type){
   return info[type]||"Unknown particle";
 }
 
-function newSteamLife(){return 160+((Math.random()*220)|0);}
+function idx(x,y){return y*cols+x;}
+function inBounds(x,y){return x>=0&&x<cols&&y>=0&&y<rows;}
+function setCell(i,t,h){
+  grid[i]=t;
+  temp[i]=h;
+  velX[i]=0;
+  velY[i]=0;
+  batteryCharge[i]=0;
+  cloudMoisture[i]=0;
+  waterContent[i]=0;
+  if(t===CLOUD) cloudMoisture[i]=80+((Math.random()*80)|0);
+  if(t===MUD) waterContent[i]=50;
+}
+function clearCell(i){
+  grid[i]=EMPTY;
+  temp[i]=ambientHeat;
+  velX[i]=0;
+  velY[i]=0;
+  batteryCharge[i]=0;
+  cloudMoisture[i]=0;
+  waterContent[i]=0;
+}
+function swapI(a,b){
+  const ta=grid[a],tb=grid[b];
+  grid[a]=tb;grid[b]=ta;
+  let t=temp[a];temp[a]=temp[b];temp[b]=t;
+  t=velX[a];velX[a]=velX[b];velX[b]=t;
+  t=velY[a];velY[a]=velY[b];velY[b]=t;
+  let u=batteryCharge[a];batteryCharge[a]=batteryCharge[b];batteryCharge[b]=u;
+  u=cloudMoisture[a];cloudMoisture[a]=cloudMoisture[b];cloudMoisture[b]=u;
+  u=waterContent[a];waterContent[a]=waterContent[b];waterContent[b]=u;
+  updated[a]=1;updated[b]=1;
+}
+function moveI(a,b){
+  grid[b]=grid[a];
+  temp[b]=temp[a];
+  velX[b]=velX[a];
+  velY[b]=velY[a];
+  batteryCharge[b]=batteryCharge[a];
+  cloudMoisture[b]=cloudMoisture[a];
+  waterContent[b]=waterContent[a];
+  updated[b]=1;
+  clearCell(a);
+  updated[a]=1;
+}
+
+function isGas(t){return t===SMOKE||t===CLOUD;}
+function isPowder(t){return t===SAND||t===ASH||t===GUNPOWDER||t===SALT||t===SNOW;}
+function isLiquid(t){return t===WATER||t===OIL||t===LAVA||t===MAGMA||t===ACID||t===HONEY||t===MUD||t===LIQUID_N;}
+function isSolid(t){return t===STONE||t===METAL||t===WOOD||t===PLANT||t===GLASS||t===CRYSTAL||t===DIAMOND||t===CONCRETE||t===WIRE||t===BATTERY||t===WALL||t===ICE||t===CORAL||t===FUNGUS||t===SEED||t===VIRUS||t===LIFE;}
+function passGas(t){return t===SMOKE||t===CLOUD;}
+
+function density(t){
+  if(t===EMPTY) return -1000;
+  if(isGas(t)) return -10;
+  if(t===OIL) return 1;
+  if(t===WATER) return 2;
+  if(t===LIQUID_N) return 2;
+  if(t===HONEY) return 3;
+  if(t===ACID) return 4;
+  if(t===MUD) return 5;
+  if(isPowder(t)) return 6;
+  if(t===LAVA) return 7;
+  if(t===MAGMA) return 8;
+  if(isSolid(t)) return 50;
+  return 10;
+}
+
+function trySwapDensity(a,b){
+  const ta=grid[a],tb=grid[b];
+  if(tb===EMPTY) return false;
+  if(passGas(tb)) return false;
+  if(tb===WALL||tb===DIAMOND) return false;
+  if(density(ta)>density(tb)){swapI(a,b);return true;}
+  return false;
+}
+
+function neighbors8(x,y,arr){
+  let k=0;
+  for(let dy=-1;dy<=1;dy++){
+    const ny=y+dy;
+    if(ny<0||ny>=rows) continue;
+    for(let dx=-1;dx<=1;dx++){
+      if(dx===0&&dy===0) continue;
+      const nx=x+dx;
+      if(nx<0||nx>=cols) continue;
+      arr[k++]=idx(nx,ny);
+    }
+  }
+  return k;
+}
+
+function explode(x,y,radius,power){
+  const r2=radius*radius;
+  for(let dy=-radius;dy<=radius;dy++){
+    const ny=y+dy;
+    if(ny<0||ny>=rows) continue;
+    for(let dx=-radius;dx<=radius;dx++){
+      const nx=x+dx;
+      if(nx<0||nx>=cols) continue;
+      if(dx*dx+dy*dy>r2) continue;
+      const i=idx(nx,ny);
+      const t=grid[i];
+      if(t===WALL||t===DIAMOND) continue;
+      if(Math.random()<0.72*power){
+        grid[i]=Math.random()<0.35?FIRE:EMPTY;
+        temp[i]=Math.max(temp[i],900);
+        const dist=Math.hypot(dx,dy);
+        if(dist>0){
+          velX[i]+=dx/dist*power*5.5;
+          velY[i]+=dy/dist*power*5.5;
+        }
+        updated[i]=1;
+      }
+    }
+  }
+}
 
 function initializeUI(){
   brushSlider.oninput=()=>{
@@ -201,13 +313,15 @@ function initializeUI(){
   };
 
   document.getElementById("resetBtn").onclick=()=>{
-    grid=make2D(()=>EMPTY);
-    temperature=make2D(()=>25);
-    velocity=make2D(()=>({x:0,y:0}));
-    batteryCharge=make2D(()=>0);
-    cloudMoisture=make2D(()=>0);
-    waterContent=make2D(()=>0);
-    steamLife=make2D(()=>0);
+    grid.fill(EMPTY);
+    for(let i=0;i<size;i++){
+      temp[i]=25;
+      velX[i]=0;velY[i]=0;
+      batteryCharge[i]=0;
+      cloudMoisture[i]=0;
+      waterContent[i]=0;
+      updated[i]=0;
+    }
     globalRain=false;
     const btn=document.getElementById("rainBtn");
     btn.innerText="Make Rain";
@@ -236,6 +350,24 @@ function initializeUI(){
     btn.innerText=globalRain?"Stop Rain":"Make Rain";
     btn.classList.toggle("active",globalRain);
   };
+
+  window.addEventListener("keydown",(e)=>{
+    if(e.code==="Space"){
+      e.preventDefault();
+      paused=!paused;
+      document.getElementById("pauseBtn").innerHTML=paused?"Resume":"Pause";
+    }
+    if(e.code==="KeyR"){
+      e.preventDefault();
+      document.getElementById("resetBtn").click();
+    }
+    if(e.code==="KeyE"){
+      tool=EMPTY;
+      currentToolDisplay.innerText="Current: Empty";
+      toolInfoDisplay.innerText="Eraser: Removes particles.";
+      document.querySelectorAll(".element-btn").forEach(b=>b.classList.remove("active"));
+    }
+  },{passive:false});
 }
 
 function createToolbar(){
@@ -264,548 +396,527 @@ function createToolbar(){
   });
 }
 
-canvas.addEventListener("mousedown",e=>{drawing=true;place(e);});
-canvas.addEventListener("mouseup",()=>drawing=false);
-canvas.addEventListener("mouseleave",()=>drawing=false);
-canvas.addEventListener("mousemove",e=>{if(drawing)place(e);});
-
-function inBounds(x,y){return x>=0&&x<cols&&y>=0&&y<rows;}
-
-function place(e){
-  const rect=canvas.getBoundingClientRect();
-  const x=Math.floor((e.clientX-rect.left)/gridSize);
-  const y=Math.floor((e.clientY-rect.top)/gridSize);
-
-  for(let dy=-brush;dy<=brush;dy++){
-    for(let dx=-brush;dx<=brush;dx++){
-      if(dx*dx+dy*dy>brush*brush) continue;
-      const nx=x+dx,ny=y+dy;
-      if(!inBounds(nx,ny)) continue;
-      if(tool===EMPTY||grid[ny][nx]!==WALL){
-        grid[ny][nx]=tool;
-        temperature[ny][nx]=ambientHeat;
-        velocity[ny][nx]={x:0,y:0};
-        batteryCharge[ny][nx]=0;
-        cloudMoisture[ny][nx]=(tool===CLOUD)?(80+((Math.random()*80)|0)):(tool===STEAM?40:0);
-        waterContent[ny][nx]=(tool===MUD)?50:0;
-        steamLife[ny][nx]=(tool===STEAM)?newSteamLife():0;
-      }
-    }
-  }
-}
-
-function clearCell(x,y){
-  grid[y][x]=EMPTY;
-  temperature[y][x]=ambientHeat;
-  velocity[y][x]={x:0,y:0};
-  batteryCharge[y][x]=0;
-  cloudMoisture[y][x]=0;
-  waterContent[y][x]=0;
-  steamLife[y][x]=0;
-}
-
-function moveTo(x,y,nx,ny){
-  const a=grid[y][x];
-  grid[ny][nx]=a;
-  temperature[ny][nx]=temperature[y][x];
-  velocity[ny][nx]=velocity[y][x];
-  batteryCharge[ny][nx]=batteryCharge[y][x];
-  cloudMoisture[ny][nx]=cloudMoisture[y][x];
-  waterContent[ny][nx]=waterContent[y][x];
-  steamLife[ny][nx]=steamLife[y][x];
-  clearCell(x,y);
-}
-
-function swap(x,y,nx,ny){
-  const a=grid[y][x],b=grid[ny][nx];
-  grid[y][x]=b; grid[ny][nx]=a;
-
-  const t=temperature[y][x];
-  temperature[y][x]=temperature[ny][nx];
-  temperature[ny][nx]=t;
-
-  const v=velocity[y][x];
-  velocity[y][x]=velocity[ny][nx];
-  velocity[ny][nx]=v;
-
-  const bc=batteryCharge[y][x];
-  batteryCharge[y][x]=batteryCharge[ny][nx];
-  batteryCharge[ny][nx]=bc;
-
-  const cm=cloudMoisture[y][x];
-  cloudMoisture[y][x]=cloudMoisture[ny][nx];
-  cloudMoisture[ny][nx]=cm;
-
-  const wc=waterContent[y][x];
-  waterContent[y][x]=waterContent[ny][nx];
-  waterContent[ny][nx]=wc;
-
-  const sl=steamLife[y][x];
-  steamLife[y][x]=steamLife[ny][nx];
-  steamLife[ny][nx]=sl;
-}
-
-function getNeighbors(x,y,radius=1){
-  const n=[];
-  for(let dy=-radius;dy<=radius;dy++){
-    for(let dx=-radius;dx<=radius;dx++){
-      if(dx===0&&dy===0) continue;
-      const nx=x+dx,ny=y+dy;
-      if(inBounds(nx,ny)) n.push([nx,ny]);
-    }
-  }
-  return n;
-}
-
-function isGas(t){return t===SMOKE||t===STEAM||t===CLOUD;}
-function isPowder(t){return t===SAND||t===ASH||t===GUNPOWDER||t===SALT||t===SNOW;}
-function isLiquid(t){return t===WATER||t===OIL||t===LAVA||t===MAGMA||t===ACID||t===HONEY||t===MUD||t===LIQUID_N;}
-function isSolid(t){return t===STONE||t===METAL||t===WOOD||t===PLANT||t===GLASS||t===CRYSTAL||t===DIAMOND||t===CONCRETE||t===WIRE||t===BATTERY||t===WALL||t===ICE||t===CORAL||t===FUNGUS||t===SEED||t===VIRUS||t===LIFE;}
-function isPassThroughGas(t){return t===SMOKE||t===STEAM||t===CLOUD;}
-
-function densityRank(t){
-  if(t===EMPTY) return -1000;
-  if(isGas(t)) return -10;
-  if(t===OIL) return 1;
-  if(t===WATER) return 2;
-  if(t===HONEY) return 3;
-  if(t===ACID) return 4;
-  if(t===MUD) return 5;
-  if(t===LAVA) return 7;
-  if(t===MAGMA) return 8;
-  if(t===LIQUID_N) return 2;
-  if(isPowder(t)) return 6;
-  if(t===ICE||t===SNOW) return 4;
-  if(isSolid(t)) return 50;
-  return 10;
-}
-
-function trySwapIfLighterBelow(x,y,downY){
-  if(!inBounds(x,downY)) return false;
-  const here=grid[y][x],below=grid[downY][x];
-  if(below===EMPTY) return false;
-  if(isPassThroughGas(below)) return false;
-  if(densityRank(here)>densityRank(below) && below!==WALL && below!==DIAMOND){
-    swap(x,y,x,downY);
-    return true;
-  }
-  return false;
-}
-
-function fallThroughGasColumn(x,y,maxDrop=18){
-  let ny=y+1;
-  if(!inBounds(x,ny)) return false;
-  if(!isPassThroughGas(grid[ny][x])) return false;
-  let limit=Math.min(rows-1,y+maxDrop);
-  while(ny<=limit && isPassThroughGas(grid[ny][x])) ny++;
-  if(ny<=limit && inBounds(x,ny) && grid[ny][x]===EMPTY){
-    moveTo(x,y,x,ny);
-    return true;
-  }
-  return false;
-}
-
-function movePowder(x,y){
-  const y1=y+1;
-  if(inBounds(x,y1) && grid[y1][x]===EMPTY){swap(x,y,x,y1);return true;}
-  if(inBounds(x,y1) && trySwapIfLighterBelow(x,y,y1)) return true;
-  const dir=Math.random()<0.5?-1:1;
-  if(inBounds(x+dir,y1) && grid[y1][x+dir]===EMPTY){swap(x,y,x+dir,y1);return true;}
-  if(inBounds(x-dir,y1) && grid[y1][x-dir]===EMPTY && Math.random()<0.35){swap(x,y,x-dir,y1);return true;}
-  return false;
-}
-
-function moveLiquid(x,y,flow=0.6){
-  if(fallThroughGasColumn(x,y,22)) return true;
-
-  const y1=y+1;
-  if(inBounds(x,y1) && grid[y1][x]===EMPTY){swap(x,y,x,y1);return true;}
-  if(inBounds(x,y1) && trySwapIfLighterBelow(x,y,y1)) return true;
-
-  const dirs=Math.random()<0.5?[-1,1]:[1,-1];
-  for(const dir of dirs){
-    const nx=x+dir;
-    if(inBounds(nx,y) && grid[y][nx]===EMPTY && Math.random()<flow){swap(x,y,nx,y);return true;}
-  }
-
-  const dir=dirs[0];
-  if(inBounds(x+dir,y1) && grid[y1][x+dir]===EMPTY && Math.random()<flow){swap(x,y,x+dir,y1);return true;}
-  return false;
-}
-
-function moveGas(x,y){
-  const y1=y-1;
-  if(inBounds(x,y1) && grid[y1][x]===EMPTY){swap(x,y,x,y1);return true;}
-  const dir=Math.random()<0.5?-1:1;
-  if(inBounds(x+dir,y) && grid[y][x+dir]===EMPTY && Math.random()<0.35){swap(x,y,x+dir,y);return true;}
-  if(inBounds(x-dir,y) && grid[y][x-dir]===EMPTY && Math.random()<0.20){swap(x,y,x-dir,y);return true;}
-  return false;
-}
-
-function moveCloud(x,y){
-  const y1=y-1;
-  if(inBounds(x,y1) && grid[y1][x]===EMPTY && Math.random()<0.55){swap(x,y,x,y1);return true;}
-  const dir=(Math.random()<0.5?-1:1);
-  if(inBounds(x+dir,y) && grid[y][x+dir]===EMPTY && Math.random()<0.40){swap(x,y,x+dir,y);return true;}
-  if(inBounds(x-dir,y) && grid[y][x-dir]===EMPTY && Math.random()<0.22){swap(x,y,x-dir,y);return true;}
-  return false;
-}
-
-function explode(x,y,radius,power=1){
-  for(let dy=-radius;dy<=radius;dy++){
-    for(let dx=-radius;dx<=radius;dx++){
-      if(dx*dx+dy*dy>radius*radius) continue;
-      const nx=x+dx,ny=y+dy;
-      if(!inBounds(nx,ny)) continue;
-      const t=grid[ny][nx];
-      if(t===WALL||t===DIAMOND) continue;
-      if(Math.random()<0.7*power){
-        grid[ny][nx]=Math.random()<0.35?FIRE:EMPTY;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],900);
-        const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist>0){
-          velocity[ny][nx].x+=(dx/dist)*power*6;
-          velocity[ny][nx].y+=(dy/dist)*power*6;
+function placeAtGrid(gx,gy,placeType){
+  const r=brush;
+  const r2=r*r;
+  for(let dy=-r;dy<=r;dy++){
+    const y=gy+dy;
+    if(y<0||y>=rows) continue;
+    for(let dx=-r;dx<=r;dx++){
+      const x=gx+dx;
+      if(x<0||x>=cols) continue;
+      if(dx*dx+dy*dy>r2) continue;
+      const i=idx(x,y);
+      if(placeType===EMPTY){
+        if(grid[i]!==WALL) clearCell(i);
+      }else{
+        if(placeType===WALL){
+          setCell(i,WALL,ambientHeat);
+        }else{
+          if(grid[i]===WALL) continue;
+          setCell(i,placeType,ambientHeat);
         }
       }
     }
   }
 }
+
+function pointerToGrid(e){
+  const rect=canvas.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)/gridSize);
+  const y=Math.floor((e.clientY-rect.top)/gridSize);
+  return {x,y};
+}
+
+canvas.addEventListener("contextmenu",(e)=>e.preventDefault());
+canvas.addEventListener("mousedown",(e)=>{
+  drawing=true;
+  const placeType=(e.button===2)?EMPTY:tool;
+  suppressCloudRain=(placeType===CLOUD);
+  const {x,y}=pointerToGrid(e);
+  placeAtGrid(x,y,placeType);
+});
+canvas.addEventListener("mouseup",()=>{drawing=false;suppressCloudRain=false;});
+canvas.addEventListener("mouseleave",()=>{drawing=false;suppressCloudRain=false;});
+canvas.addEventListener("mousemove",(e)=>{
+  if(!drawing) return;
+  const placeType=(e.buttons&2)?EMPTY:tool;
+  suppressCloudRain=(placeType===CLOUD);
+  const {x,y}=pointerToGrid(e);
+  placeAtGrid(x,y,placeType);
+});
 
 function createGlobalRain(){
   if(!globalRain) return;
   for(let x=0;x<cols;x+=3){
-    if(Math.random()<0.15){
-      const rainX=x+Math.floor(Math.random()*3);
-      if(inBounds(rainX,0) && grid[0][rainX]===EMPTY){
-        grid[0][rainX]=WATER;
-        temperature[0][rainX]=Math.min(temperature[0][rainX],ambientHeat);
-        velocity[0][rainX]={x:Math.random()*2-1,y:2};
+    if(Math.random()<0.13){
+      const rx=x+((Math.random()*3)|0);
+      if(rx<0||rx>=cols) continue;
+      const i=idx(rx,0);
+      if(grid[i]===EMPTY){
+        setCell(i,WATER,ambientHeat);
+        velY[i]=2.2+Math.random()*1.2;
+        velX[i]=Math.random()*0.8-0.4;
+        updated[i]=1;
       }
     }
   }
 }
 
-function updateTemperature(){
-  const newTemp=make2D(()=>0);
+function diffuseTemperature(){
+  const k=0.14;
   for(let y=0;y<rows;y++){
+    const y0=y*cols;
     for(let x=0;x<cols;x++){
-      let t=temperature[y][x];
-      const n=getNeighbors(x,y);
-      let sum=t,count=1;
-      for(const [nx,ny] of n){sum+=temperature[ny][nx];count++;}
-      let avg=sum/count;
-      avg+=(ambientHeat-avg)*0.01;
-      newTemp[y][x]=avg;
+      const i=y0+x;
+      let t=temp[i];
+      let sum=t,ct=1;
+      if(x>0){sum+=temp[i-1];ct++;}
+      if(x<cols-1){sum+=temp[i+1];ct++;}
+      if(y>0){sum+=temp[i-cols];ct++;}
+      if(y<rows-1){sum+=temp[i+cols];ct++;}
+      const avg=sum/ct;
+      t=t+(avg-t)*k;
+      t=t+(ambientHeat-t)*0.010;
+      temp2[i]=t;
     }
   }
-  temperature=newTemp;
+  temp.set(temp2);
 }
 
-function applyVelocityKick(x,y,vel){
-  if(Math.abs(vel.x)>0.1||Math.abs(vel.y)>0.1){
-    const nextX=Math.round(x+vel.x*0.5);
-    const nextY=Math.round(y+vel.y*0.5);
-    if(inBounds(nextX,nextY) && grid[nextY][nextX]===EMPTY){
-      swap(x,y,nextX,nextY);
-      return true;
-    }else{
-      vel.x*=-0.25;
-      vel.y*=-0.25;
+function applyVelocity(i,x,y){
+  const vx=velX[i],vy=velY[i];
+  if(Math.abs(vx)<0.12 && Math.abs(vy)<0.12) return false;
+  const nx=x+Math.max(-2,Math.min(2,Math.round(vx*0.45)));
+  const ny=y+Math.max(-2,Math.min(2,Math.round(vy*0.45)));
+  if(!inBounds(nx,ny)) return false;
+  const j=idx(nx,ny);
+  if(grid[j]===EMPTY){
+    moveI(i,j);
+    return true;
+  }
+  velX[i]*=-0.22;
+  velY[i]*=-0.22;
+  return false;
+}
+
+function fallThroughGas(i,x,y,dirY,maxDrop){
+  let ny=y+dirY;
+  if(ny<0||ny>=rows) return -1;
+  let j=idx(x,ny);
+  if(!passGas(grid[j])) return -1;
+  let limitY=y+dirY*maxDrop;
+  if(limitY<0) limitY=0;
+  if(limitY>=rows) limitY=rows-1;
+  while(ny!==limitY && passGas(grid[j])){
+    ny+=dirY;
+    if(ny<0||ny>=rows) return -1;
+    j=idx(x,ny);
+  }
+  if(grid[j]===EMPTY) return j;
+  return -1;
+}
+
+function movePowderStep(i,x,y,dirY){
+  const y1=y+dirY;
+  if(y1>=0&&y1<rows){
+    const j=idx(x,y1);
+    if(grid[j]===EMPTY){swapI(i,j);return true;}
+    if(trySwapDensity(i,j)) return true;
+    const dir=(Math.random()<0.5?-1:1);
+    const nx=x+dir;
+    if(nx>=0&&nx<cols){
+      const jd=idx(nx,y1);
+      if(grid[jd]===EMPTY){swapI(i,jd);return true;}
+    }
+    const nx2=x-dir;
+    if(nx2>=0&&nx2<cols && Math.random()<0.35){
+      const jd2=idx(nx2,y1);
+      if(grid[jd2]===EMPTY){swapI(i,jd2);return true;}
     }
   }
   return false;
 }
 
-function update(){
-  if(paused) return;
+function moveLiquidStep(i,x,y,dirY,flow,spread){
+  const gcol=fallThroughGas(i,x,y,dirY,22);
+  if(gcol!==-1){moveI(i,gcol);return true;}
 
-  particleCount=0;
-  updateTemperature();
-  createGlobalRain();
-
-  for(let y=rows-2;y>=0;y--){
-    for(let x=0;x<cols;x++){
-      const c=grid[y][x];
-      if(c===EMPTY) continue;
-      particleCount++;
-
-      const vel=velocity[y][x];
-
-      if(isGas(c)){
-        vel.y+=-0.10;
-        vel.x*=0.96;
-        vel.y*=0.96;
-      }else{
-        vel.y+=gravity*0.12;
-        vel.x*=0.93;
-        vel.y*=0.93;
-      }
-
-      updateParticle(x,y,c,temperature[y][x],vel);
+  const y1=y+dirY;
+  if(y1>=0&&y1<rows){
+    const j=idx(x,y1);
+    if(grid[j]===EMPTY){swapI(i,j);return true;}
+    if(trySwapDensity(i,j)) return true;
+    const dirA=(Math.random()<0.5?-1:1);
+    const nx=x+dirA;
+    if(nx>=0&&nx<cols){
+      const jd=idx(nx,y1);
+      if(grid[jd]===EMPTY && Math.random()<flow){swapI(i,jd);return true;}
+    }
+    const nx2=x-dirA;
+    if(nx2>=0&&nx2<cols){
+      const jd2=idx(nx2,y1);
+      if(grid[jd2]===EMPTY && Math.random()<flow*0.65){swapI(i,jd2);return true;}
     }
   }
+
+  const dirStart=(Math.random()<0.5?-1:1);
+  for(let s=1;s<=spread;s++){
+    const nx=x+dirStart*s;
+    if(nx<0||nx>=cols) break;
+    const j=idx(nx,y);
+    if(grid[j]!==EMPTY) break;
+    if(Math.random()<flow){
+      swapI(i,j);
+      return true;
+    }
+  }
+  for(let s=1;s<=spread;s++){
+    const nx=x-dirStart*s;
+    if(nx<0||nx>=cols) break;
+    const j=idx(nx,y);
+    if(grid[j]!==EMPTY) break;
+    if(Math.random()<flow*0.9){
+      swapI(i,j);
+      return true;
+    }
+  }
+  return false;
 }
 
-function updateParticle(x,y,c,temp,vel){
-  const n=getNeighbors(x,y);
+function moveGasStep(i,x,y,dirY){
+  const y1=y+dirY;
+  if(y1>=0&&y1<rows){
+    const j=idx(x,y1);
+    if(grid[j]===EMPTY && Math.random()<0.92){swapI(i,j);return true;}
+  }
+  const wx=wind+(Math.random()*0.6-0.3);
+  const dir=(wx>=0?1:-1);
+  const nx=x+dir;
+  if(nx>=0&&nx<cols){
+    const j=idx(nx,y);
+    if(grid[j]===EMPTY && Math.random()<0.42){swapI(i,j);return true;}
+  }
+  const nx2=x-dir;
+  if(nx2>=0&&nx2<cols){
+    const j=idx(nx2,y);
+    if(grid[j]===EMPTY && Math.random()<0.22){swapI(i,j);return true;}
+  }
+  return false;
+}
 
-  if(c===WATER && temp<0){grid[y][x]=ICE;temperature[y][x]=temp;steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===ICE && temp>0){grid[y][x]=WATER;temperature[y][x]=temp;steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===SNOW && temp>1 && Math.random()<0.05){grid[y][x]=WATER;temperature[y][x]=temp;steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===WATER && temp>100){grid[y][x]=STEAM;temperature[y][x]=temp;steamLife[y][x]=newSteamLife();cloudMoisture[y][x]=40+((Math.random()*30)|0);velocity[y][x]={x:vel.x*0.2,y:-1.2};return;}
+function moveCloudStep(i,x,y){
+  const y1=y-1;
+  if(y1>=0){
+    const j=idx(x,y1);
+    if(grid[j]===EMPTY && Math.random()<0.62){swapI(i,j);return true;}
+  }
+  const wx=wind*0.65+(Math.random()*0.8-0.4);
+  const dir=(wx>=0?1:-1);
+  const nx=x+dir;
+  if(nx>=0&&nx<cols){
+    const j=idx(nx,y);
+    if(grid[j]===EMPTY && Math.random()<0.50){swapI(i,j);return true;}
+  }
+  const nx2=x-dir;
+  if(nx2>=0&&nx2<cols){
+    const j=idx(nx2,y);
+    if(grid[j]===EMPTY && Math.random()<0.25){swapI(i,j);return true;}
+  }
+  return false;
+}
 
-  if(c===STONE && temp>1200 && Math.random()<0.03){grid[y][x]=LAVA;temperature[y][x]=Math.max(temp,900);steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===METAL && temp>1400 && Math.random()<0.02){grid[y][x]=LAVA;temperature[y][x]=Math.max(temp,1000);steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===SAND && temp>1550 && Math.random()<0.02){grid[y][x]=GLASS;temperature[y][x]=temp;steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
-  if(c===GLASS && (temp>1800||temp<-40) && Math.random()<0.003){grid[y][x]=SAND;temperature[y][x]=temp;steamLife[y][x]=0;cloudMoisture[y][x]=0;return;}
+const nbuf=new Int32Array(8);
+
+function updateCell(i,x,y){
+  const c=grid[i];
+  if(c===EMPTY||updated[i]) return;
+
+  particleCount++;
+
+  if(tick%60===0) wind=Math.max(-0.9,Math.min(0.9,wind+(Math.random()*0.6-0.3)));
+
+  if(isGas(c)){
+    velY[i]+=(-0.10);
+    velX[i]*=0.965;
+    velY[i]*=0.965;
+    velX[i]+=wind*0.03;
+  }else{
+    velY[i]+=gravity*0.14;
+    velX[i]*=0.92;
+    velY[i]*=0.92;
+  }
+
+  const t=temp[i];
+
+  if(c===WATER && t<0){grid[i]=ICE;updated[i]=1;cloudMoisture[i]=0;return;}
+  if(c===ICE && t>0){grid[i]=WATER;updated[i]=1;cloudMoisture[i]=0;return;}
+  if(c===SNOW && t>1 && Math.random()<0.06){grid[i]=WATER;updated[i]=1;cloudMoisture[i]=0;return;}
+
+  if(c===WATER && t>100){
+    grid[i]=SMOKE;
+    temp[i]=Math.max(temp[i],120);
+    velY[i]=-1.35;
+    velX[i]*=0.2;
+    cloudMoisture[i]=0;
+    updated[i]=1;
+    return;
+  }
+
+  if(c===STONE && t>1200 && Math.random()<0.03){grid[i]=LAVA;temp[i]=Math.max(t,900);updated[i]=1;return;}
+  if(c===METAL && t>1400 && Math.random()<0.02){grid[i]=LAVA;temp[i]=Math.max(t,1000);updated[i]=1;return;}
+  if(c===SAND && t>1550 && Math.random()<0.02){grid[i]=GLASS;updated[i]=1;return;}
+  if(c===GLASS && (t>1800||t<-40) && Math.random()<0.003){grid[i]=SAND;updated[i]=1;return;}
+
+  const ncount=neighbors8(x,y,nbuf);
 
   if(c===FIRE){
-    temperature[y][x]=Math.max(temp,820);
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      if([OIL,WOOD,PLANT,SEED,HONEY,GUNPOWDER,FUNGUS].includes(t)){
-        grid[ny][nx]=FIRE;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],820);
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
+    temp[i]=Math.max(t,820);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===WATER && Math.random()<0.24){
+        grid[j]=SMOKE;
+        temp[j]=Math.max(temp[j],120);
+        velY[j]=-1.55;
+        velX[j]=Math.random()*0.6-0.3;
+        grid[i]=SMOKE;
+        cloudMoisture[i]=0;
+        cloudMoisture[j]=0;
+        updated[i]=1;
+        updated[j]=1;
+        return;
       }
-      if(t===WATER && Math.random()<0.22){
-        grid[ny][nx]=STEAM;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],110);
-        steamLife[ny][nx]=newSteamLife();
-        cloudMoisture[ny][nx]=45+((Math.random()*35)|0);
-        velocity[ny][nx]={x:(Math.random()*0.6-0.3),y:-1.4};
-        grid[y][x]=SMOKE;
-        steamLife[y][x]=0;
-        cloudMoisture[y][x]=0;
+      if(tj===ICE||tj===SNOW){
+        grid[j]=WATER;
+        temp[j]=Math.max(temp[j],10);
+        cloudMoisture[j]=0;
+        updated[j]=1;
       }
-      if(t===ICE||t===SNOW){
-        grid[ny][nx]=WATER;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],10);
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
+      if(tj===ACID && Math.random()<0.10){
+        grid[j]=SMOKE;
+        temp[j]=Math.max(temp[j],200);
+        cloudMoisture[j]=0;
+        updated[j]=1;
       }
-      if(t===ACID && Math.random()<0.10){
-        grid[ny][nx]=SMOKE;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],200);
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
+      if(tj===OIL||tj===WOOD||tj===PLANT||tj===SEED||tj===HONEY||tj===GUNPOWDER||tj===FUNGUS){
+        grid[j]=FIRE;
+        temp[j]=Math.max(temp[j],820);
+        cloudMoisture[j]=0;
+        updated[j]=1;
       }
-      temperature[ny][nx]=Math.max(temperature[ny][nx],temp-50);
+      temp[j]=Math.max(temp[j],temp[i]-55);
     }
-    if(Math.random()<0.02){grid[y][x]=Math.random()<0.35?ASH:SMOKE;steamLife[y][x]=0;cloudMoisture[y][x]=0;}
+    if(Math.random()<0.022){
+      grid[i]=Math.random()<0.35?ASH:SMOKE;
+      cloudMoisture[i]=0;
+      updated[i]=1;
+    }else{
+      updated[i]=1;
+    }
     return;
   }
 
   if(c===LAVA||c===MAGMA){
-    temperature[y][x]=Math.max(temp,c===MAGMA?1200:950);
-
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      temperature[ny][nx]=Math.max(temperature[ny][nx],temperature[y][x]-200);
-
-      if([WOOD,PLANT,SEED,FUNGUS,HONEY,OIL,GUNPOWDER].includes(t)){
-        grid[ny][nx]=FIRE;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],820);
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
+    temp[i]=Math.max(t,c===MAGMA?1200:950);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      temp[j]=Math.max(temp[j],temp[i]-220);
+      if(tj===WOOD||tj===PLANT||tj===SEED||tj===FUNGUS||tj===HONEY||tj===OIL||tj===GUNPOWDER){
+        grid[j]=FIRE;
+        temp[j]=Math.max(temp[j],820);
+        cloudMoisture[j]=0;
+        updated[j]=1;
       }
-
-      if(t===WATER){
-        if(Math.random()<0.45){
-          grid[ny][nx]=STEAM;
-          temperature[ny][nx]=Math.max(temperature[ny][nx],120);
-          steamLife[ny][nx]=newSteamLife();
-          cloudMoisture[ny][nx]=55+((Math.random()*35)|0);
-          velocity[ny][nx]={x:(Math.random()*0.6-0.3),y:-1.6};
+      if(tj===WATER){
+        if(Math.random()<0.55){
+          grid[j]=SMOKE;
+          temp[j]=Math.max(temp[j],140);
+          velY[j]=-1.75;
+          velX[j]=Math.random()*0.6-0.3;
+          cloudMoisture[j]=0;
+          updated[j]=1;
         }
-        if(Math.random()<0.25){
-          grid[y][x]=STONE;
-          temperature[y][x]=Math.min(temperature[y][x],300);
-          steamLife[y][x]=0;
-          cloudMoisture[y][x]=0;
-        }else if(Math.random()<0.25){
-          grid[ny][nx]=STONE;
-          temperature[ny][nx]=Math.min(temperature[ny][nx],300);
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
+        if(Math.random()<0.26){
+          grid[i]=STONE;
+          temp[i]=Math.min(temp[i],300);
+          cloudMoisture[i]=0;
+          updated[i]=1;
+        }else if(Math.random()<0.26){
+          grid[j]=STONE;
+          temp[j]=Math.min(temp[j],300);
+          cloudMoisture[j]=0;
+          updated[j]=1;
         }
       }
-
       if(c===MAGMA){
-        if(t===STONE && Math.random()<0.06){
-          grid[ny][nx]=LAVA;
-          temperature[ny][nx]=Math.max(temperature[ny][nx],950);
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
-        }
-        if(t===METAL && Math.random()<0.04){
-          grid[ny][nx]=LAVA;
-          temperature[ny][nx]=Math.max(temperature[ny][nx],1000);
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
-        }
-        if(t===GLASS && Math.random()<0.02){
-          grid[ny][nx]=LAVA;
-          temperature[ny][nx]=Math.max(temperature[ny][nx],1000);
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
-        }
+        if(tj===STONE && Math.random()<0.07){grid[j]=LAVA;temp[j]=Math.max(temp[j],950);updated[j]=1;}
+        if(tj===METAL && Math.random()<0.05){grid[j]=LAVA;temp[j]=Math.max(temp[j],1000);updated[j]=1;}
+        if(tj===GLASS && Math.random()<0.03){grid[j]=LAVA;temp[j]=Math.max(temp[j],1000);updated[j]=1;}
       }
     }
-
-    moveLiquid(x,y,0.55);
-
-    if(temperature[y][x] < 650 && Math.random()<0.02){
-      grid[y][x]=STONE;
-      temperature[y][x]=Math.min(temperature[y][x],350);
-      steamLife[y][x]=0;
-      cloudMoisture[y][x]=0;
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.55,3);
+    if(temp[i]<650 && Math.random()<0.024){
+      grid[i]=STONE;
+      temp[i]=Math.min(temp[i],350);
+      cloudMoisture[i]=0;
+      updated[i]=1;
     }
     return;
   }
 
   if(c===LIQUID_N){
-    temperature[y][x]=Math.min(temp,-160);
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      temperature[ny][nx]=Math.min(temperature[ny][nx],-40);
-      if(t===WATER){grid[ny][nx]=ICE;temperature[ny][nx]=Math.min(temperature[ny][nx],-10);steamLife[ny][nx]=0;cloudMoisture[ny][nx]=0;}
-      if(t===FIRE){grid[ny][nx]=SMOKE;temperature[ny][nx]=Math.min(temperature[ny][nx],60);steamLife[ny][nx]=0;cloudMoisture[ny][nx]=0;}
-      if(t===LAVA||t===MAGMA){grid[ny][nx]=STONE;temperature[ny][nx]=Math.min(temperature[ny][nx],400);steamLife[ny][nx]=0;cloudMoisture[ny][nx]=0;}
-      if(t===STEAM && Math.random()<0.35){grid[ny][nx]=EMPTY;steamLife[ny][nx]=0;cloudMoisture[ny][nx]=0;}
-      if(t===CLOUD && Math.random()<0.25){cloudMoisture[ny][nx]=Math.max(0,cloudMoisture[ny][nx]-25);}
+    temp[i]=Math.min(t,-160);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      temp[j]=Math.min(temp[j],-40);
+      if(tj===WATER){grid[j]=ICE;temp[j]=Math.min(temp[j],-10);cloudMoisture[j]=0;updated[j]=1;}
+      if(tj===FIRE){grid[j]=SMOKE;temp[j]=Math.min(temp[j],60);cloudMoisture[j]=0;updated[j]=1;}
+      if(tj===LAVA||tj===MAGMA){grid[j]=STONE;temp[j]=Math.min(temp[j],400);cloudMoisture[j]=0;updated[j]=1;}
+      if(tj===SMOKE && Math.random()<0.22){clearCell(j);updated[j]=1;}
+      if(tj===CLOUD && Math.random()<0.25){cloudMoisture[j]=Math.max(0,cloudMoisture[j]-25);updated[j]=1;}
     }
-    moveLiquid(x,y,0.5);
-    if(Math.random()<0.01){grid[y][x]=EMPTY;steamLife[y][x]=0;cloudMoisture[y][x]=0;}
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.52,3);
+    if(Math.random()<0.012){clearCell(i);updated[i]=1;}
     return;
   }
 
   if(c===ELEC){
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      if([WATER,METAL,CRYSTAL,WIRE,BATTERY].includes(t)){
-        if(t===WIRE||t===METAL||t===CRYSTAL||t===BATTERY){
-          const wn=getNeighbors(nx,ny);
-          for(const [wx,wy] of wn){
-            if(grid[wy][wx]===EMPTY && Math.random()<0.22) grid[wy][wx]=ELEC;
-          }
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===WATER||tj===METAL||tj===CRYSTAL||tj===WIRE||tj===BATTERY){
+        if(tj===WATER){
+          if(Math.random()<0.78){grid[j]=ELEC;updated[j]=1;}
         }else{
-          if(Math.random()<0.75) grid[ny][nx]=ELEC;
+          if(Math.random()<0.55){
+            for(let m=0;m<ncount;m++){
+              const a=nbuf[m];
+              if(grid[a]===EMPTY && Math.random()<0.18){grid[a]=ELEC;updated[a]=1;}
+            }
+          }
         }
       }
-      if([OIL,PLANT,WOOD,GUNPOWDER,HONEY].includes(t)){
-        grid[ny][nx]=FIRE;
-        temperature[ny][nx]=Math.max(temperature[ny][nx],820);
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
+      if(tj===OIL||tj===PLANT||tj===WOOD||tj===GUNPOWDER||tj===HONEY){
+        grid[j]=FIRE;
+        temp[j]=Math.max(temp[j],820);
+        cloudMoisture[j]=0;
+        updated[j]=1;
       }
     }
-    if(Math.random()<0.12) grid[y][x]=EMPTY;
+    if(Math.random()<0.16){clearCell(i);updated[i]=1;}else updated[i]=1;
     return;
   }
 
   if(c===BATTERY){
-    let charge=batteryCharge[y][x];
-
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===ELEC){
-        batteryCharge[y][x]=Math.min(charge+25,200);
-        grid[ny][nx]=EMPTY;
+    let charge=batteryCharge[i];
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===ELEC){
+        charge=Math.min(charge+28,220);
+        clearCell(j);
+        updated[j]=1;
       }
     }
-
-    if(batteryCharge[y][x]>0){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===BATTERY && batteryCharge[ny][nx]<batteryCharge[y][x]){
-          batteryCharge[ny][nx]=batteryCharge[y][x];
+    if(charge>0){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        if(grid[j]===BATTERY && batteryCharge[j]<charge){
+          batteryCharge[j]=charge;
+          updated[j]=1;
         }
       }
     }
-
-    if(batteryCharge[y][x]>=200){
+    if(charge>=200){
       let discharged=false;
-      for(const [nx,ny] of n){
-        const t=grid[ny][nx];
-        if([EMPTY,WIRE,METAL,WATER,CRYSTAL].includes(t) && Math.random()<0.35){
-          grid[ny][nx]=ELEC;
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        const tj=grid[j];
+        if((tj===EMPTY||tj===WIRE||tj===METAL||tj===WATER||tj===CRYSTAL) && Math.random()<0.40){
+          grid[j]=ELEC;
+          updated[j]=1;
           discharged=true;
         }
       }
-      if(discharged||Math.random()<0.12) batteryCharge[y][x]=0;
+      if(discharged||Math.random()<0.15) charge=0;
+    }else{
+      if(charge>0 && Math.random()<0.012) charge=Math.max(0,charge-1);
     }
-
-    temperature[y][x]=Math.max(temperature[y][x],ambientHeat);
+    batteryCharge[i]=charge;
+    updated[i]=1;
     return;
   }
 
   if(c===WIRE){
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===ELEC){
-        const wn=getNeighbors(x,y);
-        for(const [wx,wy] of wn){
-          if(grid[wy][wx]===WIRE && Math.random()<0.80){
-            const wnn=getNeighbors(wx,wy);
-            for(const [ax,ay] of wnn){
-              if(grid[ay][ax]===EMPTY && Math.random()<0.25) grid[ay][ax]=ELEC;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===ELEC && Math.random()<0.70){
+        for(let m=0;m<ncount;m++){
+          const a=nbuf[m];
+          if(grid[a]===WIRE && Math.random()<0.75){
+            for(let q=0;q<8;q++){
+              const b=nbuf[q];
+              if(grid[b]===EMPTY && Math.random()<0.22){grid[b]=ELEC;updated[b]=1;}
             }
           }
         }
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===ACID){
-    moveLiquid(x,y,0.55);
-
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      if(t===WALL||t===DIAMOND) continue;
-      if(t===ACID) continue;
-
-      if(t===WATER && Math.random()<0.08){
-        grid[y][x]=WATER;
-        temperature[y][x]=Math.min(temperature[y][x],ambientHeat);
-        cloudMoisture[y][x]=0;
-        grid[ny][nx]=EMPTY;
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.56,4);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===WALL||tj===DIAMOND||tj===ACID) continue;
+      if(tj===WATER && Math.random()<0.10){
+        grid[i]=WATER;
+        temp[i]=Math.min(temp[i],ambientHeat);
+        cloudMoisture[i]=0;
+        clearCell(j);
+        updated[i]=1;
+        updated[j]=1;
         return;
       }
-
-      if(t!==EMPTY && !isPassThroughGas(t) && Math.random()<0.07){
-        if(t===CRYSTAL||t===GLASS){
-          grid[ny][nx]=EMPTY;
-        }else if(t===METAL){
-          grid[ny][nx]=SMOKE;
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
+      if(tj!==EMPTY && !passGas(tj) && Math.random()<0.075){
+        if(tj===CRYSTAL||tj===GLASS){
+          clearCell(j);
+          updated[j]=1;
+        }else if(tj===METAL){
+          grid[j]=SMOKE;
+          cloudMoisture[j]=0;
+          temp[j]=Math.max(temp[j],190);
+          updated[j]=1;
         }else{
-          grid[ny][nx]=Math.random()<0.3?SMOKE:EMPTY;
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
+          grid[j]=Math.random()<0.28?SMOKE:EMPTY;
+          cloudMoisture[j]=0;
+          updated[j]=1;
         }
       }
     }
-
-    if(Math.random()<0.006) grid[y][x]=EMPTY;
+    if(Math.random()<0.0065){clearCell(i);updated[i]=1;}
     return;
   }
 
   if(c===OIL){
-    moveLiquid(x,y,0.62);
-
-    if(inBounds(x,y+1) && grid[y+1][x]===WATER && Math.random()<0.35){
-      swap(x,y,x,y+1);
-      return;
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.64,5);
+    const yb=y+(gravity>=0?1:-1);
+    if(yb>=0&&yb<rows){
+      const j=idx(x,yb);
+      if(grid[j]===WATER && Math.random()<0.36){swapI(i,j);return;}
     }
-
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===FIRE && Math.random()<0.25){
-        grid[y][x]=FIRE;
-        temperature[y][x]=Math.max(temperature[y][x],820);
-        steamLife[y][x]=0;
-        cloudMoisture[y][x]=0;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===FIRE && Math.random()<0.28){
+        grid[i]=FIRE;
+        temp[i]=Math.max(temp[i],820);
+        cloudMoisture[i]=0;
+        updated[i]=1;
         return;
       }
     }
@@ -813,45 +924,41 @@ function updateParticle(x,y,c,temp,vel){
   }
 
   if(c===WATER){
-    moveLiquid(x,y,0.70);
-
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-
-      if(t===SALT && Math.random()<0.25){
-        grid[ny][nx]=EMPTY;
-        if(Math.random()<0.08) grid[y][x]=SALT;
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.72,6);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===SALT && Math.random()<0.28){
+        clearCell(j);
+        updated[j]=1;
+        if(Math.random()<0.08){grid[i]=SALT;updated[i]=1;return;}
       }
-
-      if(t===ASH && Math.random()<0.10){
-        grid[ny][nx]=EMPTY;
-      }
-
-      if(t===FIRE && Math.random()<0.22){
-        grid[ny][nx]=SMOKE;
-        steamLife[ny][nx]=0;
-        cloudMoisture[ny][nx]=0;
-        grid[y][x]=STEAM;
-        temperature[y][x]=Math.max(temperature[y][x],110);
-        steamLife[y][x]=newSteamLife();
-        cloudMoisture[y][x]=45+((Math.random()*35)|0);
-        velocity[y][x]={x:(Math.random()*0.5-0.25),y:-1.3};
+      if(tj===ASH && Math.random()<0.12){clearCell(j);updated[j]=1;}
+      if(tj===FIRE && Math.random()<0.22){
+        grid[j]=SMOKE;
+        cloudMoisture[j]=0;
+        updated[j]=1;
+        grid[i]=SMOKE;
+        temp[i]=Math.max(temp[i],120);
+        velY[i]=-1.45;
+        velX[i]=Math.random()*0.5-0.25;
+        cloudMoisture[i]=0;
+        updated[i]=1;
         return;
       }
     }
-
     return;
   }
 
   if(c===HONEY){
-    moveLiquid(x,y,0.22);
-
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===FIRE && Math.random()<0.12){
-        grid[y][x]=FIRE;
-        temperature[y][x]=Math.max(temperature[y][x],820);
-        steamLife[y][x]=0;
-        cloudMoisture[y][x]=0;
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.25,3);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===FIRE && Math.random()<0.14){
+        grid[i]=FIRE;
+        temp[i]=Math.max(temp[i],820);
+        cloudMoisture[i]=0;
+        updated[i]=1;
         return;
       }
     }
@@ -859,61 +966,48 @@ function updateParticle(x,y,c,temp,vel){
   }
 
   if(c===MUD){
-    moveLiquid(x,y,0.35);
-
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===WATER && Math.random()<0.12 && waterContent[y][x]<100){
-        grid[ny][nx]=EMPTY;
-        waterContent[y][x]=Math.min(waterContent[y][x]+25,100);
-      }
-      if(grid[ny][nx]===SAND && Math.random()<0.05){
-        grid[ny][nx]=MUD;
-        waterContent[ny][nx]=Math.max(waterContent[ny][nx],40);
+    moveLiquidStep(i,x,y,gravity>=0?1:-1,0.38,4);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===WATER && Math.random()<0.14 && waterContent[i]<110){
+        clearCell(j);
+        updated[j]=1;
+        waterContent[i]=Math.min(110,waterContent[i]+26);
       }
     }
-
-    if(Math.random()<0.002){
-      waterContent[y][x]=Math.max(0,waterContent[y][x]-1);
-      if(waterContent[y][x]<10 && Math.random()<0.35){
-        grid[y][x]=SAND;
-        waterContent[y][x]=0;
-      }
-    }
+    if(Math.random()<0.010) waterContent[i]=Math.max(0,waterContent[i]-1);
     return;
   }
 
   if(c===SAND){
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===WATER && Math.random()<0.18){
-        grid[y][x]=MUD;
-        waterContent[y][x]=50;
-        grid[ny][nx]=EMPTY;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===WATER && Math.random()<0.16){
+        grid[i]=MUD;
+        waterContent[i]=55;
+        clearCell(j);
+        updated[i]=1;
+        updated[j]=1;
         return;
       }
     }
-    movePowder(x,y);
+    movePowderStep(i,x,y,gravity>=0?1:-1);
     return;
   }
 
   if(c===SNOW){
-    movePowder(x,y);
-    if(temp<-10 && Math.random()<0.002){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===SNOW && Math.random()<0.15){
-          grid[y][x]=ICE;
-          temperature[y][x]=Math.min(temperature[y][x],-5);
-          return;
-        }
-      }
-    }
+    movePowderStep(i,x,y,gravity>=0?1:-1);
     return;
   }
 
   if(c===SALT){
-    movePowder(x,y);
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===WATER && Math.random()<0.08){
-        grid[y][x]=EMPTY;
+    movePowderStep(i,x,y,gravity>=0?1:-1);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===WATER && Math.random()<0.10){
+        clearCell(i);
+        updated[i]=1;
         return;
       }
     }
@@ -921,11 +1015,14 @@ function updateParticle(x,y,c,temp,vel){
   }
 
   if(c===GUNPOWDER){
-    movePowder(x,y);
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===FIRE || grid[ny][nx]===ELEC){
+    movePowderStep(i,x,y,gravity>=0?1:-1);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===FIRE||tj===ELEC){
         explode(x,y,6,2);
-        grid[y][x]=EMPTY;
+        clearCell(i);
+        updated[i]=1;
         return;
       }
     }
@@ -933,10 +1030,12 @@ function updateParticle(x,y,c,temp,vel){
   }
 
   if(c===ASH){
-    movePowder(x,y);
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===WATER && Math.random()<0.08){
-        grid[y][x]=EMPTY;
+    movePowderStep(i,x,y,gravity>=0?1:-1);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===WATER && Math.random()<0.09){
+        clearCell(i);
+        updated[i]=1;
         return;
       }
     }
@@ -944,309 +1043,359 @@ function updateParticle(x,y,c,temp,vel){
   }
 
   if(c===SMOKE){
-    moveGas(x,y);
-    if(Math.random()<0.015) grid[y][x]=EMPTY;
-    return;
-  }
-
-  if(c===STEAM){
-    moveCloud(x,y);
-    if(steamLife[y][x]>0) steamLife[y][x]--;
-    if(temp<90 && Math.random()<0.06){
-      grid[y][x]=CLOUD;
-      cloudMoisture[y][x]=Math.min(200,cloudMoisture[y][x]+60);
-      steamLife[y][x]=0;
-      return;
-    }
-    if(steamLife[y][x]<=0){
-      if(Math.random()<0.55){
-        grid[y][x]=CLOUD;
-        cloudMoisture[y][x]=Math.min(200,cloudMoisture[y][x]+45);
-      }else{
-        grid[y][x]=EMPTY;
-        cloudMoisture[y][x]=0;
-      }
-      steamLife[y][x]=0;
-    }
+    moveGasStep(i,x,y,-1);
+    if(Math.random()<0.017){clearCell(i);updated[i]=1;}
     return;
   }
 
   if(c===CLOUD){
-    moveCloud(x,y);
+    moveCloudStep(i,x,y);
+    let m=cloudMoisture[i];
 
-    let m=cloudMoisture[y][x];
-
-    if(m<200){
-      for(const [nx,ny] of n){
-        const t=grid[ny][nx];
-        if(t===STEAM){
-          m=Math.min(200,m+12);
-          if(Math.random()<0.35){
-            grid[ny][nx]=CLOUD;
-            cloudMoisture[ny][nx]=Math.min(200,cloudMoisture[ny][nx]+35);
-            steamLife[ny][nx]=0;
-          }
-        }else if(t===WATER){
-          if(temp>20 && Math.random()<0.06) m=Math.min(200,m+2);
+    if(m<220){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        const tj=grid[j];
+        if(tj===WATER){
+          if(t>18 && Math.random()<0.065) m=Math.min(220,m+2);
+        }
+        if(tj===LIQUID_N && Math.random()<0.08){
+          m=Math.max(0,m-10);
         }
       }
     }
 
-    if(y<=1 && m>12){
-      if(Math.random()<Math.min(0.55,0.06+(m/200)*0.35)){
+    if(!suppressCloudRain && m>18 && Math.random()<Math.min(0.60,0.05+(m/220)*0.40)){
+      const by=y+1;
+      if(by<rows){
         const drops=1+((Math.random()*3)|0);
-        for(let i=0;i<drops;i++){
-          const ox=((Math.random()*3)|0)-1;
-          const rx=x+ox;
-          const by=y+1;
-          if(inBounds(rx,by) && grid[by][rx]===EMPTY){
-            grid[by][rx]=WATER;
-            temperature[by][rx]=Math.min(temperature[by][rx],ambientHeat);
-            velocity[by][rx]={x:(Math.random()*0.4-0.2),y:2.0+Math.random()*1.2};
+        for(let d=0;d<drops;d++){
+          const rx=x+(((Math.random()*3)|0)-1);
+          if(rx<0||rx>=cols) continue;
+          const j=idx(rx,by);
+          if(grid[j]===EMPTY){
+            setCell(j,WATER,ambientHeat);
+            velY[j]=2.0+Math.random()*1.2;
+            velX[j]=Math.random()*0.4-0.2;
+            updated[j]=1;
             m=Math.max(0,m-(10+((Math.random()*8)|0)));
           }
         }
       }
-    }else if(m>0 && Math.random()<0.002){
+    }else if(m>0 && Math.random()<0.004){
       m=Math.max(0,m-1);
     }
 
-    cloudMoisture[y][x]=m;
+    cloudMoisture[i]=m;
+    updated[i]=1;
     return;
   }
 
   if(c===PLANT){
-    const touchingWater=n.some(([nx,ny])=>grid[ny][nx]===WATER);
-    if(touchingWater && Math.random()<0.02){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===EMPTY && Math.random()<0.08){
-          grid[ny][nx]=PLANT;
-          temperature[ny][nx]=Math.min(temperature[ny][nx],ambientHeat);
+    let touchingWater=false;
+    for(let k=0;k<ncount;k++){if(grid[nbuf[k]]===WATER){touchingWater=true;break;}}
+    if(touchingWater && Math.random()<0.0022){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        if(grid[j]===EMPTY && Math.random()<0.05){
+          grid[j]=PLANT;
+          temp[j]=Math.min(temp[j],ambientHeat);
+          updated[j]=1;
         }
       }
     }
-    return;
-  }
-
-  if(c===WOOD){
+    updated[i]=1;
     return;
   }
 
   if(c===SEED){
-    const below=inBounds(x,y+1)?grid[y+1][x]:WALL;
+    const yb=y+(gravity>=0?1:-1);
+    const below=(yb>=0&&yb<rows)?grid[idx(x,yb)]:WALL;
     const onSoil=(below===MUD||below===SAND||below===PLANT);
-    const nearWater=n.some(([nx,ny])=>grid[ny][nx]===WATER);
-    if(onSoil && nearWater && Math.random()<0.03){
-      grid[y][x]=WOOD;
-      temperature[y][x]=Math.min(temperature[y][x],ambientHeat);
-      if(inBounds(x,y-1) && grid[y-1][x]===EMPTY && Math.random()<0.85){
-        grid[y-1][x]=PLANT;
-        temperature[y-1][x]=Math.min(temperature[y-1][x],ambientHeat);
+    let nearWater=false;
+    for(let k=0;k<ncount;k++){if(grid[nbuf[k]]===WATER){nearWater=true;break;}}
+    if(onSoil && nearWater && Math.random()<0.004){
+      grid[i]=WOOD;
+      temp[i]=Math.min(temp[i],ambientHeat);
+      const ya=y-1;
+      if(ya>=0){
+        const j=idx(x,ya);
+        if(grid[j]===EMPTY && Math.random()<0.75){
+          grid[j]=PLANT;
+          temp[j]=Math.min(temp[j],ambientHeat);
+          updated[j]=1;
+        }
       }
+      updated[i]=1;
       return;
     }
-    movePowder(x,y);
+    movePowderStep(i,x,y,gravity>=0?1:-1);
     return;
   }
 
   if(c===VIRUS){
-    for(const [nx,ny] of n){
-      const t=grid[ny][nx];
-      if([PLANT,WOOD,SEED,LIFE,FUNGUS].includes(t) && Math.random()<0.06){
-        grid[ny][nx]=VIRUS;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if((tj===PLANT||tj===WOOD||tj===SEED||tj===LIFE||tj===FUNGUS) && Math.random()<0.065){
+        grid[j]=VIRUS;
+        updated[j]=1;
       }
-      if(t===ACID && Math.random()<0.2){
-        grid[y][x]=EMPTY;
-        return;
-      }
-      if(t===FIRE && Math.random()<0.2){
-        grid[y][x]=SMOKE;
-        return;
-      }
+      if(tj===ACID && Math.random()<0.22){clearCell(i);updated[i]=1;return;}
+      if(tj===FIRE && Math.random()<0.22){grid[i]=SMOKE;updated[i]=1;return;}
     }
-    if(Math.random()<0.0012) grid[y][x]=EMPTY;
+    if(Math.random()<0.0013){clearCell(i);updated[i]=1;}
     return;
   }
 
   if(c===CRYSTAL){
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===WATER && Math.random()<0.0015){
-        grid[ny][nx]=CRYSTAL;
-        temperature[ny][nx]=Math.min(temperature[ny][nx],ambientHeat);
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      const tj=grid[j];
+      if(tj===WATER && Math.random()<0.0018){
+        grid[j]=CRYSTAL;
+        temp[j]=Math.min(temp[j],ambientHeat);
+        updated[j]=1;
       }
-      if(grid[ny][nx]===ACID && Math.random()<0.04){
-        grid[y][x]=EMPTY;
-        return;
-      }
+      if(tj===ACID && Math.random()<0.045){clearCell(i);updated[i]=1;return;}
     }
+    updated[i]=1;
     return;
   }
 
   if(c===LIFE){
-    if(Math.random()<0.012){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===EMPTY && Math.random()<0.18){
-          const lifeforms=[PLANT,SEED];
-          grid[ny][nx]=lifeforms[(Math.random()*lifeforms.length)|0];
-          temperature[ny][nx]=Math.min(temperature[ny][nx],ambientHeat);
+    if(Math.random()<0.003){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        if(grid[j]===EMPTY && Math.random()<0.16){
+          grid[j]=Math.random()<0.55?PLANT:SEED;
+          temp[j]=Math.min(temp[j],ambientHeat);
+          updated[j]=1;
         }
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===FUNGUS){
-    if(Math.random()<0.02){
-      for(const [nx,ny] of n){
-        const t=grid[ny][nx];
-        if((t===EMPTY||t===PLANT||t===WOOD) && Math.random()<0.18){
-          grid[ny][nx]=FUNGUS;
-          temperature[ny][nx]=Math.min(temperature[ny][nx],ambientHeat);
+    if(Math.random()<0.004){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        const tj=grid[j];
+        if((tj===EMPTY||tj===PLANT||tj===WOOD) && Math.random()<0.12){
+          grid[j]=FUNGUS;
+          temp[j]=Math.min(temp[j],ambientHeat);
+          updated[j]=1;
         }
-        if(t!==EMPTY && t!==WALL && inBounds(nx,ny-1) && grid[ny-1][nx]===EMPTY && Math.random()<0.06){
-          grid[ny-1][nx]=FUNGUS;
+        const jy=j-cols;
+        if(jy>=0 && tj!==EMPTY && tj!==WALL && grid[jy]===EMPTY && Math.random()<0.03){
+          grid[jy]=FUNGUS;
+          temp[jy]=Math.min(temp[jy],ambientHeat);
+          updated[jy]=1;
         }
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===CORAL){
-    const touchingWater=n.some(([nx,ny])=>grid[ny][nx]===WATER);
-    if(touchingWater && Math.random()<0.01){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===EMPTY && Math.random()<0.16){
-          grid[ny][nx]=CORAL;
-          temperature[ny][nx]=Math.min(temperature[ny][nx],ambientHeat);
+    let touchingWater=false;
+    for(let k=0;k<ncount;k++){if(grid[nbuf[k]]===WATER){touchingWater=true;break;}}
+    if(touchingWater && Math.random()<0.006){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        if(grid[j]===EMPTY && Math.random()<0.12){
+          grid[j]=CORAL;
+          temp[j]=Math.min(temp[j],ambientHeat);
+          updated[j]=1;
         }
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===RADIATION){
-    if(Math.random()<0.02){
-      for(const [nx,ny] of n){
-        const t=grid[ny][nx];
-        if(t!==EMPTY && t!==WALL && t!==DIAMOND && t!==RADIATION && Math.random()<0.06){
+    if(Math.random()<0.024){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        const tj=grid[j];
+        if(tj!==EMPTY && tj!==WALL && tj!==DIAMOND && tj!==RADIATION && Math.random()<0.065){
           const possibilities=[SAND,WATER,FIRE,STONE,METAL,CRYSTAL,PLANT,ACID,SMOKE,VIRUS,ICE,SNOW,ASH,OIL];
-          grid[ny][nx]=possibilities[(Math.random()*possibilities.length)|0];
-          if(grid[ny][nx]!==STEAM) steamLife[ny][nx]=0;
-          if(grid[ny][nx]!==CLOUD) cloudMoisture[ny][nx]=0;
+          const nt=possibilities[(Math.random()*possibilities.length)|0];
+          grid[j]=nt;
+          updated[j]=1;
         }
       }
     }
-    if(Math.random()<0.002) grid[y][x]=EMPTY;
+    if(Math.random()<0.0022){clearCell(i);updated[i]=1;}
     return;
   }
 
   if(c===CLONE){
-    if(Math.random()<0.12){
-      const targets=n.filter(([nx,ny])=>{
-        const t=grid[ny][nx];
-        return ![EMPTY,WALL,CLONE].includes(t);
-      });
-      if(targets.length){
-        const [tx,ty]=targets[(Math.random()*targets.length)|0];
-        grid[y][x]=grid[ty][tx];
-        temperature[y][x]=temperature[ty][tx];
-        steamLife[y][x]=(grid[y][x]===STEAM)?newSteamLife():0;
-        cloudMoisture[y][x]=(grid[y][x]===CLOUD||grid[y][x]===STEAM)?cloudMoisture[ty][tx]:0;
-        if(grid[y][x]===STEAM) velocity[y][x]={x:(Math.random()*0.5-0.25),y:-1.2};
+    if(Math.random()<0.14){
+      const picks=[];
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        const tj=grid[j];
+        if(tj!==EMPTY && tj!==WALL && tj!==CLONE) picks.push(j);
+      }
+      if(picks.length){
+        const j=picks[(Math.random()*picks.length)|0];
+        const tj=grid[j];
+        grid[i]=tj;
+        temp[i]=temp[j];
+        velX[i]=velX[j]*0.5;
+        velY[i]=velY[j]*0.5;
+        batteryCharge[i]=batteryCharge[j];
+        waterContent[i]=waterContent[j];
+        cloudMoisture[i]=(tj===CLOUD)?cloudMoisture[j]:0;
+        updated[i]=1;
       }
     }
     return;
   }
 
   if(c===ICE){
-    if(Math.random()<0.001 && temp<-20){
-      for(const [nx,ny] of n){
-        if(grid[ny][nx]===WATER && Math.random()<0.06){
-          grid[ny][nx]=ICE;
-          temperature[ny][nx]=Math.min(temperature[ny][nx],-5);
-          steamLife[ny][nx]=0;
-          cloudMoisture[ny][nx]=0;
+    if(Math.random()<0.0012 && t<-20){
+      for(let k=0;k<ncount;k++){
+        const j=nbuf[k];
+        if(grid[j]===WATER && Math.random()<0.07){
+          grid[j]=ICE;
+          temp[j]=Math.min(temp[j],-5);
+          cloudMoisture[j]=0;
+          updated[j]=1;
         }
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===METAL){
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===ACID && Math.random()<0.01){
-        grid[y][x]=SMOKE;
-        steamLife[y][x]=0;
-        cloudMoisture[y][x]=0;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===ACID && Math.random()<0.012){
+        grid[i]=SMOKE;
+        cloudMoisture[i]=0;
+        updated[i]=1;
         return;
       }
     }
+    updated[i]=1;
     return;
   }
 
   if(c===CONCRETE){
-    for(const [nx,ny] of n){
-      if(grid[ny][nx]===ACID && Math.random()<0.008){
-        grid[y][x]=SAND;
+    for(let k=0;k<ncount;k++){
+      const j=nbuf[k];
+      if(grid[j]===ACID && Math.random()<0.010){
+        grid[i]=SAND;
+        updated[i]=1;
         return;
       }
     }
+    updated[i]=1;
     return;
   }
 
-  if(!isGas(c)) applyVelocityKick(x,y,vel);
+  if(!isGas(c)) applyVelocity(i,x,y);
+  updated[i]=1;
+}
+
+function update(){
+  if(paused) return;
+
+  tick++;
+  particleCount=0;
+  updated.fill(0);
+
+  if((tick&1)===0) diffuseTemperature();
+  createGlobalRain();
+
+  const dirY=gravity>=0?1:-1;
+  const startY=dirY===1?rows-1:0;
+  const endY=dirY===1?-1:rows;
+  const stepY=dirY===1?-1:1;
+
+  for(let y=startY;y!==endY;y+=stepY){
+    const base=y*cols;
+    const xStart=(Math.random()*cols)|0;
+    for(let xo=0;xo<cols;xo++){
+      const x=(xStart+xo)%cols;
+      const i=base+x;
+      updateCell(i,x,y);
+    }
+  }
+
+  if(!drawing) suppressCloudRain=false;
 }
 
 function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const data=img.data;
 
-  for(let y=0;y<rows;y++){
-    for(let x=0;x<cols;x++){
-      const c=grid[y][x];
-      if(c===EMPTY) continue;
+  for(let gy=0;gy<rows;gy++){
+    for(let gx=0;gx<cols;gx++){
+      const i=idx(gx,gy);
+      const c=grid[i];
+      const px=gx*gridSize;
+      const py=gy*gridSize;
 
-      let color=colors[c]||"#999";
-      const temp=temperature[y][x];
+      let r=0,g=0,b=0,a=255;
 
-      if(temp>100){
-        const heat=Math.min((temp-100)/700,1);
-        color=`rgb(255,${Math.floor(255*(1-heat*0.55))},${Math.floor(255*(1-heat))})`;
-      }else if(temp<0){
-        const cold=Math.min(Math.abs(temp)/120,1);
-        color=`rgb(${Math.floor(255*(1-cold*0.4))},${Math.floor(255*(1-cold*0.4))},255)`;
+      if(c!==EMPTY){
+        let col=colors[c]||"#999";
+        r=parseInt(col.slice(1,3),16);
+        g=parseInt(col.slice(3,5),16);
+        b=parseInt(col.slice(5,7),16);
+
+        const tt=temp[i];
+        if(tt>100){
+          const heat=Math.min((tt-100)/700,1);
+          r=255;
+          g=Math.max(0,Math.min(255,Math.floor(255*(1-heat*0.55))));
+          b=Math.max(0,Math.min(255,Math.floor(255*(1-heat))));
+        }else if(tt<0){
+          const cold=Math.min(Math.abs(tt)/120,1);
+          r=Math.max(0,Math.min(255,Math.floor(255*(1-cold*0.4))));
+          g=Math.max(0,Math.min(255,Math.floor(255*(1-cold*0.4))));
+          b=255;
+        }
+
+        if(c===BATTERY){
+          const ch=batteryCharge[i]/220;
+          r=Math.floor(255*(1-ch));
+          g=Math.floor(255*ch);
+          b=0;
+        }
+
+        if(c===CLOUD){
+          const m=cloudMoisture[i]/220;
+          a=Math.floor(255*(0.46+0.42*m));
+        }else if(c===FIRE||c===ELEC){
+          a=Math.floor(255*(0.70+Math.random()*0.30));
+        }else{
+          a=255;
+        }
       }
 
-      if(c===BATTERY){
-        const charge=batteryCharge[y][x]/200;
-        const r=Math.floor(255*(1-charge));
-        const g=Math.floor(255*charge);
-        color=`rgb(${r},${g},0)`;
+      for(let oy=0;oy<gridSize;oy++){
+        const rowOff=((py+oy)*canvas.width+px)*4;
+        for(let ox=0;ox<gridSize;ox++){
+          const p=rowOff+ox*4;
+          data[p]=r;
+          data[p+1]=g;
+          data[p+2]=b;
+          data[p+3]=a;
+        }
       }
-
-      if(c===CLOUD){
-        const m=cloudMoisture[y][x]/200;
-        ctx.globalAlpha=0.50+0.35*m;
-      }
-
-      if(c===MUD){
-        const wet=waterContent[y][x]/100;
-        const r=Math.floor(139*(1-wet*0.25));
-        const g=Math.floor(69*(1-wet*0.20));
-        const b=Math.floor(19*(1+wet*0.60));
-        color=`rgb(${r},${g},${b})`;
-      }
-
-      if(c===FIRE||c===ELEC){
-        ctx.globalAlpha=(Math.random()*0.3+0.7);
-      }else if(c!==CLOUD){
-        ctx.globalAlpha=1;
-      }
-
-      ctx.fillStyle=color;
-      ctx.fillRect(x*gridSize,y*gridSize,gridSize,gridSize);
-      ctx.globalAlpha=1;
     }
   }
+
+  ctx.putImageData(img,0,0);
 }
 
 let lastTime=performance.now();
@@ -1254,7 +1403,6 @@ let frames=0;
 
 function loop(now){
   requestAnimationFrame(loop);
-
   if(!paused){
     for(let i=0;i<speed;i++) update();
   }
@@ -1273,6 +1421,9 @@ initializeUI();
 createToolbar();
 currentToolDisplay.innerText="Current: "+names[tool];
 toolInfoDisplay.innerText=getParticleInfo(tool);
+
+for(let i=0;i<size;i++) temp[i]=25;
+
 loop(performance.now());
 </script>
 </body>
