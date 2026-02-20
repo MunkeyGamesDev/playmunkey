@@ -35,6 +35,12 @@
       "description": "The Worlds Best Clicker Game!",
       "file": "JustClick.html",
       "image": "JustClick.png"
+    },
+    {
+      "title": "Remon",
+      "description": "A Suika Clone!",
+      "file": "Remon.html",
+      "image": "Remon.png"
     }
   ]
 }
