@@ -7,8 +7,8 @@
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap');
     *{box-sizing:border-box}
-    html,body{margin:0;height:100%;background:url('paperbg.png') center/cover no-repeat fixed;color:#fff;font-family:'Nunito',system-ui,sans-serif;overflow:hidden}
-    body{display:flex;justify-content:center;align-items:center}
+    html,body{margin:0;height:100%;color:#fff;font-family:'Nunito',system-ui,sans-serif;overflow:hidden}
+    body{display:flex;justify-content:center;align-items:center;background:url('Remon/paperbg.png') center/cover no-repeat fixed}
     body::before{content:'';position:fixed;inset:0;background:rgba(10,10,20,0.45);pointer-events:none;z-index:0}
 
     #menu{
@@ -95,15 +95,15 @@
 
 <div id="menu">
   <div class="menu-glow"></div>
-  <img class="menu-icon" src="Lemon.png" alt="lemon" />
+  <img class="menu-icon" src="Remon/Lemon.png" alt="lemon" />
   <h1 class="menu-title">Remon</h1>
   <p class="menu-sub">Merge &amp; Stack Fruits</p>
   <div class="menu-fruits">
-    <img class="menu-fruit" src="Lemon.png" alt="lemon" />
-    <img class="menu-fruit" src="Orange.png" alt="orange" />
-    <img class="menu-fruit" src="Apple.png" alt="apple" />
-    <img class="menu-fruit" src="Coconut.png" alt="coconut" />
-    <img class="menu-fruit" src="Watermelon.png" alt="watermelon" />
+    <img class="menu-fruit" src="Remon/Lemon.png" alt="lemon" />
+    <img class="menu-fruit" src="Remon/Orange.png" alt="orange" />
+    <img class="menu-fruit" src="Remon/Apple.png" alt="apple" />
+    <img class="menu-fruit" src="Remon/Coconut.png" alt="coconut" />
+    <img class="menu-fruit" src="Remon/Watermelon.png" alt="watermelon" />
   </div>
   <button class="play-btn" id="play-btn">▶ Play</button>
   <div class="menu-best" id="menu-best" style="display:none"></div>
@@ -111,7 +111,7 @@
 </div>
 
 <div class="wrap">
-  <h1 class="title"><img class="title-icon" src="Lemon.png" alt="" /> <span>Remon</span></h1>
+  <h1 class="title"><img class="title-icon" src="Remon/Lemon.png" alt="" /> <span>Remon</span></h1>
   <div class="hud">
     <div class="score-box">
       <span class="score-label">Score</span>
@@ -120,7 +120,7 @@
     <div class="next-box">
       <div class="next-label">Next</div>
       <div class="next-fruit">
-        <img class="next-img" id="next-img" src="Lemon.png" alt="" />
+        <img class="next-img" id="next-img" src="Remon/Lemon.png" alt="" />
         <span class="next-name" id="next-name">Lemon</span>
       </div>
     </div>
@@ -161,18 +161,18 @@
   const SHAKE_CD = 30000;
 
   const FRUITS = [
-    { name:"Lemon",      img:"Lemon.png",      color:"#ffeb3b", particle:"#fff176", r:23, vr:29, score:2  },
-    { name:"Orange",     img:"Orange.png",     color:"#ff9800", particle:"#ffb74d", r:28, vr:36, score:5  },
-    { name:"Apple",      img:"Apple.png",      color:"#f44336", particle:"#ef5350", r:34, vr:44, score:12 },
-    { name:"Coconut",    img:"Coconut.png",    color:"#8d6e63", particle:"#a1887f", r:44, vr:56, score:28 },
-    { name:"Watermelon", img:"Watermelon.png", color:"#4caf50", particle:"#66bb6a", r:55, vr:71, score:65 }
+    { name:"Lemon",      img:"Remon/Lemon.png",      color:"#ffeb3b", particle:"#fff176", r:23, vr:29, score:2  },
+    { name:"Orange",     img:"Remon/Orange.png",     color:"#ff9800", particle:"#ffb74d", r:28, vr:36, score:5  },
+    { name:"Apple",      img:"Remon/Apple.png",      color:"#f44336", particle:"#ef5350", r:34, vr:44, score:12 },
+    { name:"Coconut",    img:"Remon/Coconut.png",    color:"#8d6e63", particle:"#a1887f", r:44, vr:56, score:28 },
+    { name:"Watermelon", img:"Remon/Watermelon.png", color:"#4caf50", particle:"#66bb6a", r:55, vr:71, score:65 }
   ];
 
   const images = FRUITS.map(f => {
     const im = new Image(); im.src = f.img; return im;
   });
 
-  const jarBg = new Image(); jarBg.src = "jarbg.png";
+  const jarBg = new Image(); jarBg.src = "Remon/jarbg.png";
 
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
   const rand = (a,b) => a + Math.random()*(b-a);
@@ -188,7 +188,7 @@
     if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
   }
 
-  const wowAudio = new Audio("wow.mp3");
+  const wowAudio = new Audio("Remon/wow.mp3");
   wowAudio.preload = "auto";
 
   function playWow(){
