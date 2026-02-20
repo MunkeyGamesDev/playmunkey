@@ -177,6 +177,146 @@
   const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
   const rand = (a,b) => a + Math.random()*(b-a);
 
+  let audioCtx = null;
+
+  function getAudioCtx(){
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function resumeAudio(){
+    if(audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+  }
+
+  const wowAudio = new Audio("wow.mp3");
+  wowAudio.preload = "auto";
+
+  function playWow(){
+    wowAudio.currentTime = 0;
+    wowAudio.play().catch(()=>{});
+  }
+
+  function playDrop(){
+    const ac = getAudioCtx();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = "sine";
+    o.frequency.setValueAtTime(520, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(220, ac.currentTime + 0.12);
+    g.gain.setValueAtTime(0.18, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.14);
+    o.start(ac.currentTime);
+    o.stop(ac.currentTime + 0.15);
+  }
+
+  function playLand(){
+    const ac = getAudioCtx();
+    const buf = ac.createBuffer(1, ac.sampleRate * 0.06, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/data.length, 3) * 0.35;
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.5, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.06);
+    src.connect(g); g.connect(ac.destination);
+    src.start();
+  }
+
+  function playMerge(tier){
+    const ac = getAudioCtx();
+    const notes = [523, 659, 784, 1047, 1319];
+    const freq = notes[Math.min(tier, notes.length-1)];
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = "triangle";
+    o.frequency.setValueAtTime(freq * 0.8, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(freq, ac.currentTime + 0.04);
+    g.gain.setValueAtTime(0.0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(0.28, ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.28);
+    o.start(ac.currentTime);
+    o.stop(ac.currentTime + 0.3);
+  }
+
+  function playCombo(comboCount){
+    const ac = getAudioCtx();
+    const semitones = [0, 2, 4, 7, 9, 12, 14, 16];
+    const idx = Math.min(comboCount - 2, semitones.length - 1);
+    const baseFreq = 523.25;
+    const freq = baseFreq * Math.pow(2, semitones[idx] / 12);
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = "square";
+    o.frequency.setValueAtTime(freq, ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(freq * 1.5, ac.currentTime + 0.08);
+    g.gain.setValueAtTime(0.0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(0.15, ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.22);
+    o.start(ac.currentTime);
+    o.stop(ac.currentTime + 0.25);
+  }
+
+  function playShake(){
+    const ac = getAudioCtx();
+    const dur = 0.4;
+    const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i = 0; i < data.length; i++) data[i] = (Math.random()*2-1) * 0.6;
+    const src = ac.createBufferSource();
+    src.buffer = buf;
+    const filter = ac.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(180, ac.currentTime);
+    filter.frequency.linearRampToValueAtTime(60, ac.currentTime + dur);
+    filter.Q.value = 1.5;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.5, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + dur);
+    src.connect(filter); filter.connect(g); g.connect(ac.destination);
+    src.start();
+    src.stop(ac.currentTime + dur);
+  }
+
+  function playGameOver(){
+    const ac = getAudioCtx();
+    const freqs = [392, 349, 330, 262];
+    freqs.forEach((f, i) => {
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type = "sawtooth";
+      const t = ac.currentTime + i * 0.18;
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0, t);
+      g.gain.linearRampToValueAtTime(0.2, t + 0.04);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      o.start(t);
+      o.stop(t + 0.32);
+    });
+  }
+
+  function playNewBest(){
+    const ac = getAudioCtx();
+    const melody = [523, 659, 784, 1047];
+    melody.forEach((f, i) => {
+      const o = ac.createOscillator();
+      const g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.type = "triangle";
+      const t = ac.currentTime + i * 0.12;
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0, t);
+      g.gain.linearRampToValueAtTime(0.22, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      o.start(t);
+      o.stop(t + 0.22);
+    });
+  }
+
   let bodies=[], score=0, cursorX=W/2, nextTier=0;
   let lastDropAt=-1e9;
   const DROP_CD_MS=200;
@@ -190,6 +330,7 @@
   let shakeAnim=0;
 
   let bestScore = parseInt(localStorage.getItem("remon_best")||"0",10);
+  let gameOverSoundPlayed = false;
 
   function showMenu(){
     if(bestScore>0){
@@ -204,6 +345,7 @@
   }
 
   playBtn.addEventListener("click",()=>{
+    resumeAudio();
     hideMenu();
     reset();
   });
@@ -235,6 +377,7 @@
     shakeLastUsed=-1e9; shakeAnimActive=false; shakeAnim=0;
     shakeBtn.disabled=false;
     cdRing.style.setProperty("--pct","0%");
+    gameOverSoundPlayed=false;
   }
 
   function addScore(n){
@@ -264,22 +407,24 @@
     const now=performance.now();
     if(now-lastDropAt<DROP_CD_MS) return;
     lastDropAt=now;
+    resumeAudio();
+    playDrop();
     spawnFruit(nextTier,cursorX);
     nextTier=rollNextTier();
     nextNameEl.textContent=FRUITS[nextTier].name;
     nextImgEl.src=FRUITS[nextTier].img;
   }
 
-  canvas.addEventListener("mousedown",drop);
-  canvas.addEventListener("touchend",(e)=>{e.preventDefault();drop();},{passive:false});
-  restartBtn.addEventListener("click",()=>{reset();});
+  restartBtn.addEventListener("click",()=>{ resumeAudio(); reset(); });
 
   shakeBtn.addEventListener("click",()=>{
     const now=performance.now();
     if(now-shakeLastUsed<SHAKE_CD||gameOver) return;
+    resumeAudio();
     shakeLastUsed=now;
     shakeAnimActive=true; shakeAnim=0;
     shakeBtn.disabled=true;
+    playShake();
     for(const b of bodies){
       b.vx+=rand(-300,300);
       b.vy+=rand(-500,-100);
@@ -288,9 +433,17 @@
   });
 
   function resolveWalls(b){
+    const wasMovingFast = Math.abs(b.vy) > 120;
     if(b.x-b.r<LEFT){b.x=LEFT+b.r;b.vx=Math.abs(b.vx)*(1-REST);b.angVel+=b.vy*TORQUE_SCALE;}
     if(b.x+b.r>RIGHT){b.x=RIGHT-b.r;b.vx=-Math.abs(b.vx)*(1-REST);b.angVel-=b.vy*TORQUE_SCALE;}
-    if(b.y+b.r>FLOOR){b.y=FLOOR-b.r;b.vy=-Math.abs(b.vy)*REST;b.vx*=0.98;b.angVel+=b.vx*TORQUE_SCALE;}
+    if(b.y+b.r>FLOOR){
+      if(wasMovingFast && !b._justLanded){
+        b._justLanded=true;
+        playLand();
+        setTimeout(()=>{ b._justLanded=false; }, 120);
+      }
+      b.y=FLOOR-b.r;b.vy=-Math.abs(b.vy)*REST;b.vx*=0.98;b.angVel+=b.vx*TORQUE_SCALE;
+    }
   }
 
   function pairSolve(a,b){
@@ -348,7 +501,17 @@
       const earned=base*multiplier;
       addScore(earned);
       createMergeBurst(mx,my,FRUITS[nt].particle);
-      if(multiplier>1) spawnComboPopup(mx,my,multiplier,earned);
+      if(multiplier>1){
+        spawnComboPopup(mx,my,multiplier,earned);
+        const isMaxCombo = multiplier >= 8;
+        if(isMaxCombo){
+          playWow();
+        } else {
+          playCombo(multiplier);
+        }
+      } else {
+        playMerge(nt);
+      }
       spawns.push({tier:nt,x:mx,y:my,angVel:(a.angVel+b.angVel)*0.3});
     }
     bodies=bodies.filter(b=>!b.merged);
@@ -358,11 +521,27 @@
     }
   }
 
+  let prevGameOver = false;
+
   function checkGameOver(now){
     let bad=false;
     for(const b of bodies){ if(b.y-b.r<TOP_LINE_Y){bad=true;break;} }
     if(bad){ if(badSince===null) badSince=now; if(now-badSince>=TOP_GRACE_MS) gameOver=true; }
     else badSince=null;
+
+    if(gameOver && !prevGameOver){
+      prevGameOver=true;
+      if(!gameOverSoundPlayed){
+        gameOverSoundPlayed=true;
+        const isNewBest = score >= bestScore && score > 0;
+        if(isNewBest){
+          playNewBest();
+        } else {
+          playGameOver();
+        }
+      }
+    }
+    if(!gameOver) prevGameOver=false;
   }
 
   function drawFruit(tier,x,y,angle,vr){
@@ -597,6 +776,7 @@
 
   canvas.addEventListener("mousedown",(e)=>{
     if(gameOver){
+      resumeAudio();
       const rect=canvas.getBoundingClientRect();
       const px=(e.clientX-rect.left)*(W/rect.width);
       const py=(e.clientY-rect.top)*(H/rect.height);
@@ -610,6 +790,7 @@
   canvas.addEventListener("touchend",(e)=>{
     e.preventDefault();
     if(gameOver){
+      resumeAudio();
       const rect=canvas.getBoundingClientRect();
       const t=e.changedTouches[0];
       const px=(t.clientX-rect.left)*(W/rect.width);
